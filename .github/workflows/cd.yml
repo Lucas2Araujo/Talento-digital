@@ -1,0 +1,68 @@
+name: CD - Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão da Release (ex: 1.0.0 ou v1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  check-ci:
+    name: Check CI Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify CI passed on current commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Verificando se os testes de CI passaram para o commit ${{ github.sha }}..."
+          STATUS=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs --jq '.check_runs[] | select(.name == "Lint & Tests") | .conclusion' | head -n 1)
+          echo "Status do CI: ${STATUS:-Não encontrado}"
+          if [ "$STATUS" != "success" ]; then
+            echo "Atenção: O CI não foi aprovado para este commit (status: '$STATUS'). Abortando CD para manter integridade da release."
+            exit 1
+          fi
+
+  build-and-release:
+    name: Build Split APKs & Release
+    needs: check-ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Split APKs
+        run: flutter build apk --split-per-abi --release
+
+      - name: Filter Out x86_64 (Keep only armv7 and armv8)
+        run: |
+          rm -f build/app/outputs/flutter-apk/*x86_64*.apk
+          ls -la build/app/outputs/flutter-apk/
+
+      - name: Create GitHub Release with Split APKs
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: "Release ${{ inputs.version }}"
+          files: build/app/outputs/flutter-apk/*.apk
+          generate_release_notes: true

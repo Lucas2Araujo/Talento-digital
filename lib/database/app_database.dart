@@ -27,7 +27,7 @@ class AppDatabase {
   /// Inicializa o driver FFI correspondente à plataforma (Web ou Desktop)
   static void setupPlatformDriver() {
     if (kIsWeb) {
-      databaseFactory = databaseFactoryFfiWeb;
+      databaseFactory = databaseFactoryFfiWebNoWebWorker;
     } else if (defaultTargetPlatform == TargetPlatform.linux ||
         defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.macOS) {
@@ -71,6 +71,10 @@ class AppDatabase {
           }
         },
         onCreate: (db, version) async {
+          await _createTables(db);
+        },
+        onOpen: (db) async {
+          // Garante que todas as tabelas existam mesmo se o banco já foi inicializado anteriormente
           await _createTables(db);
         },
       ),

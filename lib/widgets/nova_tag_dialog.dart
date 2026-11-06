@@ -51,9 +51,18 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
   }
 
   Future<void> _carregarAlunosSemTag() async {
-    final list = await widget.repository.listarAlunosSemTag();
-    if (mounted) {
-      setState(() => _alunosSemTag = list);
+    try {
+      final list = await widget.repository
+          .listarAlunosSemTag()
+          .timeout(const Duration(seconds: 6));
+      if (mounted) {
+        setState(() => _alunosSemTag = list);
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar alunos sem tag: $e');
+      if (mounted) {
+        setState(() => _alunosSemTag = []);
+      }
     }
   }
 
@@ -62,20 +71,30 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
     if (nome.isEmpty) return;
 
     setState(() => _salvando = true);
-    final novo = AlunoModel(
-      uid: widget.uid,
-      nome: nome,
-      turma: _turmaController.text.trim().isEmpty ? null : _turmaController.text.trim(),
-      saldoTalentos: 0,
-      ativo: true,
-      updatedAt: DateTime.now().toIso8601String(),
-    );
+    try {
+      final novo = AlunoModel(
+        uid: widget.uid,
+        nome: nome,
+        turma: _turmaController.text.trim().isEmpty ? null : _turmaController.text.trim(),
+        saldoTalentos: 0,
+        ativo: true,
+        updatedAt: DateTime.now().toIso8601String(),
+      );
 
-    await widget.repository.cadastrarAluno(novo);
+      await widget.repository.cadastrarAluno(novo);
 
-    if (mounted) {
-      Navigator.pop(context);
-      widget.onSuccess(novo);
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSuccess(novo);
+      }
+    } catch (e) {
+      debugPrint('Erro ao salvar aluno: $e');
+      if (mounted) {
+        setState(() => _salvando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar no banco: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -83,16 +102,26 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
     if (_alunoSelecionadoParaVincular == null) return;
     setState(() => _salvando = true);
 
-    await widget.repository.vincularTagAoAluno(
-      uidAntigo: _alunoSelecionadoParaVincular!.uid,
-      novoUidTag: widget.uid,
-    );
+    try {
+      await widget.repository.vincularTagAoAluno(
+        uidAntigo: _alunoSelecionadoParaVincular!.uid,
+        novoUidTag: widget.uid,
+      );
 
-    final atualizado = await widget.repository.buscarAlunoPorUid(widget.uid);
+      final atualizado = await widget.repository.buscarAlunoPorUid(widget.uid);
 
-    if (mounted && atualizado != null) {
-      Navigator.pop(context);
-      widget.onSuccess(atualizado);
+      if (mounted && atualizado != null) {
+        Navigator.pop(context);
+        widget.onSuccess(atualizado);
+      }
+    } catch (e) {
+      debugPrint('Erro ao vincular tag: $e');
+      if (mounted) {
+        setState(() => _salvando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao vincular tag: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
