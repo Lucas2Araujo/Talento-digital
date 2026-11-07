@@ -132,10 +132,11 @@ class _GestaoProdutosDialogState extends State<GestaoProdutosDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -171,66 +172,143 @@ class _GestaoProdutosDialogState extends State<GestaoProdutosDialog> {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.amber),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextFormField(
-                            controller: _nomeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nome do Item *',
-                              isDense: true,
-                              border: OutlineInputBorder(),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 500;
+                        if (isCompact) {
+                          // Layout Vertical para celular e tablet compacto
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _nomeController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome do Item *',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _valorController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Preço (T) *',
+                                        isDense: true,
+                                        prefixText: 'T ',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      validator: (v) {
+                                        final val = int.tryParse(v ?? '');
+                                        if (val == null || val <= 0) return 'Valor > 0';
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _estoqueController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Estoque Inicial',
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              FilledButton.icon(
+                                onPressed: _salvando ? null : _salvarNovoProduto,
+                                icon: _salvando
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.black,
+                                        ),
+                                      )
+                                    : const Icon(Icons.add),
+                                label: const Text('Cadastrar Item na Feirinha'),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        // Layout Horizontal para telas largas / PC
+                        return Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                controller: _nomeController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome do Item *',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+                              ),
                             ),
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: _valorController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Preço (T) *',
-                              isDense: true,
-                              prefixText: 'T ',
-                              border: OutlineInputBorder(),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: _valorController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Preço (T) *',
+                                  isDense: true,
+                                  prefixText: 'T ',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (v) {
+                                  final val = int.tryParse(v ?? '');
+                                  if (val == null || val <= 0) return 'Valor > 0';
+                                  return null;
+                                },
+                              ),
                             ),
-                            validator: (v) {
-                              final val = int.tryParse(v ?? '');
-                              if (val == null || val <= 0) return 'Valor > 0';
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: _estoqueController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Estoque',
-                              isDense: true,
-                              border: OutlineInputBorder(),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: _estoqueController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Estoque',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton.icon(
-                          onPressed: _salvando ? null : _salvarNovoProduto,
-                          icon: _salvando
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.add),
-                          label: const Text('Add'),
-                        ),
-                      ],
+                            const SizedBox(width: 8),
+                            FilledButton.icon(
+                              onPressed: _salvando ? null : _salvarNovoProduto,
+                              icon: _salvando
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.add),
+                              label: const Text('Add'),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),

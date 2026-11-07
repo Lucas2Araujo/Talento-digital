@@ -37,9 +37,6 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Setup SQLite Web Worker & WASM
-        run: dart run sqflite_common_ffi_web:setup
-
       - name: Build Web
         run: flutter build web --base-href "/${{ github.event.repository.name }}/" --release
 

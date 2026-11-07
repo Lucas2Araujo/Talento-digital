@@ -339,31 +339,35 @@ class _FeirinhaPdvScreenState extends State<FeirinhaPdvScreen> {
           ),
         ],
       ),
-      body: isDesktopOrTablet
-          ? Row(
-              children: [
-                // Painel Esquerdo: Seleção (Catálogo / Valor Livre)
-                Expanded(
-                  flex: 3,
-                  child: _buildPainelSelecao(),
-                ),
-                const VerticalDivider(width: 1),
-                // Painel Direito: Carrinho e Checkout
-                SizedBox(
-                  width: 380,
-                  child: _buildPainelCarrinho(),
-                ),
-              ],
-            )
-          : Column(
-              children: [
-                // Em telas menores: Abas ou Painel dividido
-                Expanded(
-                  child: _buildPainelSelecao(),
-                ),
-                _buildBarraCarrinhoMobile(),
-              ],
-            ),
+      body: Focus(
+        autofocus: true,
+        canRequestFocus: true,
+        child: isDesktopOrTablet
+            ? Row(
+                children: [
+                  // Painel Esquerdo: Seleção (Catálogo / Valor Livre)
+                  Expanded(
+                    flex: 3,
+                    child: _buildPainelSelecao(),
+                  ),
+                  const VerticalDivider(width: 1),
+                  // Painel Direito: Carrinho e Checkout
+                  SizedBox(
+                    width: 380,
+                    child: _buildPainelCarrinho(),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  // Em telas menores: Abas ou Painel dividido
+                  Expanded(
+                    child: _buildPainelSelecao(),
+                  ),
+                  _buildBarraCarrinhoMobile(),
+                ],
+              ),
+      ),
     );
   }
 
@@ -372,38 +376,43 @@ class _FeirinhaPdvScreenState extends State<FeirinhaPdvScreen> {
   // ----------------------------------------------------
 
   Widget _buildPainelSelecao() {
-    return Column(
-      children: [
-        // Alternador de Modos (Catálogo / Valor Livre)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: SegmentedButton<int>(
-            segments: const [
-              ButtonSegment<int>(
-                value: 0,
-                icon: Icon(Icons.grid_view_rounded),
-                label: Text('Catálogo de Produtos'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 420;
+        return Column(
+          children: [
+            // Alternador de Modos (Catálogo / Valor Livre)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: SegmentedButton<int>(
+                segments: [
+                  ButtonSegment<int>(
+                    value: 0,
+                    icon: const Icon(Icons.grid_view_rounded),
+                    label: Text(isCompact ? 'Catálogo' : 'Catálogo de Produtos'),
+                  ),
+                  ButtonSegment<int>(
+                    value: 1,
+                    icon: const Icon(Icons.pin_outlined),
+                    label: Text(isCompact ? 'Valor Livre' : 'Valor Livre / Rápido'),
+                  ),
+                ],
+                selected: {_modoSelecionado},
+                onSelectionChanged: (val) {
+                  setState(() => _modoSelecionado = val.first);
+                },
               ),
-              ButtonSegment<int>(
-                value: 1,
-                icon: Icon(Icons.pin_outlined),
-                label: Text('Valor Livre / Rápido'),
-              ),
-            ],
-            selected: {_modoSelecionado},
-            onSelectionChanged: (val) {
-              setState(() => _modoSelecionado = val.first);
-            },
-          ),
-        ),
+            ),
 
-        // Conteúdo do modo
-        Expanded(
-          child: _modoSelecionado == 0
-              ? _buildModoCatalogo()
-              : _buildModoValorLivre(),
-        ),
-      ],
+            // Conteúdo do modo
+            Expanded(
+              child: _modoSelecionado == 0
+                  ? _buildModoCatalogo()
+                  : _buildModoValorLivre(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -443,11 +452,14 @@ class _FeirinhaPdvScreenState extends State<FeirinhaPdvScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = (constraints.maxWidth / 160).floor().clamp(2, 6);
+        final isMobile = constraints.maxWidth < 600;
+        final childAspectRatio = isMobile ? 0.76 : 0.85;
+
         return GridView.builder(
           padding: const EdgeInsets.all(16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.85,
+            childAspectRatio: childAspectRatio,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),

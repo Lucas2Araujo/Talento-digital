@@ -2,11 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
+import 'web_nfc_helper.dart';
 
 typedef OnNfcTagScanned = void Function(String uid);
 
 /// Serviço híbrido para capturar eventos de NFC:
-/// 1. Hardware HID USB (Web, Desktop e Android com adaptador USB-OTG).
+/// 1. Hardware HID USB (Web, Desktop e Android com adaptador USB-OTG ou Hub).
 /// 2. Antena NFC interna nativa do celular (Android via nfc_manager lendo o hardware UID).
 class NfcUsbListener {
   final OnNfcTagScanned onTagScanned;
@@ -21,8 +22,13 @@ class NfcUsbListener {
     _isActive = true;
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
 
-    // Inicia sessão NFC nativa se estiver rodando no Android
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    if (kIsWeb) {
+      registerWebNfcCallback((uid) {
+        if (_isActive) {
+          onTagScanned(uid);
+        }
+      });
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
       _startNativeAndroidNfc();
     }
   }
@@ -32,10 +38,10 @@ class NfcUsbListener {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _buffer.clear();
 
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      try {
-        NfcManager.instance.stopSession();
-      } catch (_) {}
+    if (kIsWeb) {
+      registerWebNfcCallback(null);
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      NfcManager.instance.stopSession().catchError((_) {});
     }
   }
 
@@ -97,47 +103,57 @@ class NfcUsbListener {
 
     // Se for hexadecimal (0-9, A-F)
     if (char != null && char.length == 1 && RegExp(r'[0-9a-fA-F]').hasMatch(char)) {
-      _buffer.write(char);
+      _buffer.write(char.toUpperCase());
       return false;
     }
 
-    // Se qualquer caractere não-hexadecimal for digitado (espaço, etc.), limpa o buffer
-    if (char != null && char.isNotEmpty && !char.contains(RegExp(r'[\r\n]'))) {
-      _buffer.clear();
+    // Se não for tecla modificadora (Shift, Ctrl, Alt, CapsLock) e não for quebra de linha, limpa
+    if (event.logicalKey != LogicalKeyboardKey.shiftLeft &&
+        event.logicalKey != LogicalKeyboardKey.shiftRight &&
+        event.logicalKey != LogicalKeyboardKey.capsLock &&
+        event.logicalKey != LogicalKeyboardKey.numLock &&
+        event.logicalKey != LogicalKeyboardKey.controlLeft &&
+        event.logicalKey != LogicalKeyboardKey.controlRight) {
+      if (char != null && char.isNotEmpty && !char.contains(RegExp(r'[\r\n]'))) {
+        _buffer.clear();
+      }
     }
 
     return false;
   }
 
   String? _resolveCharacterFromKey(LogicalKeyboardKey key) {
-    if (key == LogicalKeyboardKey.digit0) return '0';
-    if (key == LogicalKeyboardKey.digit1) return '1';
-    if (key == LogicalKeyboardKey.digit2) return '2';
-    if (key == LogicalKeyboardKey.digit3) return '3';
-    if (key == LogicalKeyboardKey.digit4) return '4';
-    if (key == LogicalKeyboardKey.digit5) return '5';
-    if (key == LogicalKeyboardKey.digit6) return '6';
-    if (key == LogicalKeyboardKey.digit7) return '7';
-    if (key == LogicalKeyboardKey.digit8) return '8';
-    if (key == LogicalKeyboardKey.digit9) return '9';
+    // 1. Tenta pegar direto do label da tecla se for um único caractere hex
+    final label = key.keyLabel;
+    if (label.length == 1 && RegExp(r'^[0-9a-fA-F]$').hasMatch(label)) {
+      return label.toUpperCase();
+    }
 
-    if (key == LogicalKeyboardKey.numpad0) return '0';
-    if (key == LogicalKeyboardKey.numpad1) return '1';
-    if (key == LogicalKeyboardKey.numpad2) return '2';
-    if (key == LogicalKeyboardKey.numpad3) return '3';
-    if (key == LogicalKeyboardKey.numpad4) return '4';
-    if (key == LogicalKeyboardKey.numpad5) return '5';
-    if (key == LogicalKeyboardKey.numpad6) return '6';
-    if (key == LogicalKeyboardKey.numpad7) return '7';
-    if (key == LogicalKeyboardKey.numpad8) return '8';
-    if (key == LogicalKeyboardKey.numpad9) return '9';
+    // 2. Mapeamento explícito de dígitos normais e do teclado numérico
+    if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) return '0';
+    if (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1) return '1';
+    if (key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2) return '2';
+    if (key == LogicalKeyboardKey.digit3 || key == LogicalKeyboardKey.numpad3) return '3';
+    if (key == LogicalKeyboardKey.digit4 || key == LogicalKeyboardKey.numpad4) return '4';
+    if (key == LogicalKeyboardKey.digit5 || key == LogicalKeyboardKey.numpad5) return '5';
+    if (key == LogicalKeyboardKey.digit6 || key == LogicalKeyboardKey.numpad6) return '6';
+    if (key == LogicalKeyboardKey.digit7 || key == LogicalKeyboardKey.numpad7) return '7';
+    if (key == LogicalKeyboardKey.digit8 || key == LogicalKeyboardKey.numpad8) return '8';
+    if (key == LogicalKeyboardKey.digit9 || key == LogicalKeyboardKey.numpad9) return '9';
 
+    // 3. Letras hexadecimais A-F
     if (key == LogicalKeyboardKey.keyA) return 'A';
     if (key == LogicalKeyboardKey.keyB) return 'B';
     if (key == LogicalKeyboardKey.keyC) return 'C';
     if (key == LogicalKeyboardKey.keyD) return 'D';
     if (key == LogicalKeyboardKey.keyE) return 'E';
     if (key == LogicalKeyboardKey.keyF) return 'F';
+
+    // 4. Fallback por faixa ASCII do keyId
+    final id = key.keyId;
+    if (id >= 0x30 && id <= 0x39) return String.fromCharCode(id);
+    if (id >= 0x41 && id <= 0x46) return String.fromCharCode(id);
+    if (id >= 0x61 && id <= 0x66) return String.fromCharCode(id - 0x20);
 
     return null;
   }

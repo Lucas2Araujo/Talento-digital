@@ -67,6 +67,14 @@ class _AlunosScreenState extends State<AlunosScreen> {
 
   Future<void> _tratarLeituraTag(String uid) async {
     debugPrint('NFC Tag Scanned: $uid');
+
+    // Se o campo de pesquisa acumulou caracteres da tag enquanto o leitor digitava, limpa
+    if (_searchController.text.toUpperCase().contains(uid.toUpperCase())) {
+      _searchController.clear();
+      _filtro = '';
+      _carregarAlunos();
+    }
+
     // Busca o aluno no SQLite
     final aluno = await widget.repository.buscarAlunoPorUid(uid);
 
@@ -214,10 +222,13 @@ class _AlunosScreenState extends State<AlunosScreen> {
         label: const Text('Novo Aluno'),
         onPressed: _cadastrarAlunoManual,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
+      body: Focus(
+        autofocus: true,
+        canRequestFocus: true,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
             children: [
               // Banner do leitor NFC USB
               _buildNfcBanner(),
@@ -288,6 +299,7 @@ class _AlunosScreenState extends State<AlunosScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

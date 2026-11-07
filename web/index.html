@@ -31,6 +31,41 @@
 
   <title>talento_digital</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    // Universal USB HID / Barcode / NFC scanner listener no navegador
+    (function() {
+      var rfidBuffer = '';
+      var lastKeyTime = 0;
+      window.addEventListener('keydown', function(e) {
+        var now = Date.now();
+        if (now - lastKeyTime > 600) {
+          rfidBuffer = '';
+        }
+        lastKeyTime = now;
+
+        if (e.key === 'Enter') {
+          var code = rfidBuffer.trim();
+          rfidBuffer = '';
+          if (code.length >= 4 && /^[0-9a-fA-F]{4,32}$/.test(code)) {
+            if (typeof window.onNfcTagScanned === 'function') {
+              window.onNfcTagScanned(code.toUpperCase());
+            }
+          }
+          return;
+        }
+
+        if (e.key && e.key.length === 1 && /[0-9a-fA-F]/.test(e.key)) {
+          rfidBuffer += e.key;
+        }
+      }, true);
+
+      // Garante que o canvas/visualizador do Flutter mantenha foco ao clicar/tocar
+      window.addEventListener('pointerdown', function() {
+        var el = document.querySelector('flutter-view') || document.querySelector('canvas');
+        if (el && typeof el.focus === 'function') el.focus();
+      });
+    })();
+  </script>
 </head>
 <body>
   <!--
