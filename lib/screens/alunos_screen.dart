@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../database/models.dart';
 import '../database/talentos_repository.dart';
@@ -66,7 +67,10 @@ class _AlunosScreenState extends State<AlunosScreen> {
   }
 
   Future<void> _tratarLeituraTag(String uid) async {
-    debugPrint('NFC Tag Scanned: $uid');
+    // Só processa a leitura se a tela inicial estiver no topo (sem diálogo ou modal aberto)
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+
+    debugPrint('NFC Tag Scanned (Tela Inicial): $uid');
 
     // Se o campo de pesquisa acumulou caracteres da tag enquanto o leitor digitava, limpa
     if (_searchController.text.toUpperCase().contains(uid.toUpperCase())) {
@@ -78,12 +82,9 @@ class _AlunosScreenState extends State<AlunosScreen> {
     // Busca o aluno no SQLite
     final aluno = await widget.repository.buscarAlunoPorUid(uid);
 
-    if (!mounted) return;
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
 
     if (aluno != null) {
-      // Fecha diálogos anteriores caso algum esteja aberto para não sobrepor
-      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-
       // 1. Tag já existente -> Abre modal de Perfil com ações rápidas
       AlunoDetalhesModal.show(
         context,
@@ -92,8 +93,6 @@ class _AlunosScreenState extends State<AlunosScreen> {
         onDataChanged: _carregarAlunos,
       );
     } else {
-      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-
       // 2. Tag inédita -> Abre diálogo para Cadastrar ou Vincular
       NovaTagDialog.show(
         context,
@@ -113,70 +112,11 @@ class _AlunosScreenState extends State<AlunosScreen> {
   }
 
   Future<void> _cadastrarAlunoManual() async {
-    final nomeController = TextEditingController();
-    final turmaController = TextEditingController();
-
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cadastrar Aluno (Manual)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nomeController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Nome do Aluno *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: turmaController,
-              decoration: const InputDecoration(
-                labelText: 'Turma (ex: Primários, Juvenis)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final nome = nomeController.text.trim();
-              if (nome.isNotEmpty) {
-                try {
-                  final novo = AlunoModel(
-                    uid: 'MANUAL_${const Uuid().v4().substring(0, 8).toUpperCase()}',
-                    nome: nome,
-                    turma: turmaController.text.trim().isEmpty ? null : turmaController.text.trim(),
-                    saldoTalentos: 0,
-                    ativo: true,
-                    updatedAt: DateTime.now().toIso8601String(),
-                  );
-                  await widget.repository.cadastrarAluno(novo);
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                  }
-                  _carregarAlunos();
-                } catch (e) {
-                  debugPrint('Erro ao cadastrar manual: $e');
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              }
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
+      builder: (ctx) => _CadastroAlunoDialog(
+        repository: widget.repository,
+        onAlunoCadastrado: _carregarAlunos,
       ),
     );
   }
@@ -428,6 +368,187 @@ class _AlunosScreenState extends State<AlunosScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CadastroAlunoDialog extends StatefulWidget {
+  final TalentosRepository repository;
+  final VoidCallback onAlunoCadastrado;
+
+  const _CadastroAlunoDialog({
+    required this.repository,
+    required this.onAlunoCadastrado,
+  });
+
+  @override
+  State<_CadastroAlunoDialog> createState() => _CadastroAlunoDialogState();
+}
+
+class _CadastroAlunoDialogState extends State<_CadastroAlunoDialog> {
+  final _nomeController = TextEditingController();
+  final _turmaController = TextEditingController();
+  final _uidController = TextEditingController();
+  late final NfcUsbListener _nfcListener;
+  bool _salvando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Este listener assume o topo da pilha de escuta NFC enquanto o diálogo estiver aberto
+    _nfcListener = NfcUsbListener(onTagScanned: (uid) {
+      if (mounted) {
+        setState(() {
+          _uidController.text = uid;
+        });
+        HapticFeedback.selectionClick();
+      }
+    });
+    _nfcListener.start();
+  }
+
+  @override
+  void dispose() {
+    _nfcListener.stop();
+    _nomeController.dispose();
+    _turmaController.dispose();
+    _uidController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _salvar() async {
+    final nome = _nomeController.text.trim();
+    if (nome.isEmpty) return;
+
+    setState(() => _salvando = true);
+    try {
+      final uid = _uidController.text.trim().isNotEmpty
+          ? _uidController.text.trim().toUpperCase()
+          : 'MANUAL_${const Uuid().v4().substring(0, 8).toUpperCase()}';
+
+      final novo = AlunoModel(
+        uid: uid,
+        nome: nome,
+        turma: _turmaController.text.trim().isEmpty ? null : _turmaController.text.trim(),
+        saldoTalentos: 0,
+        ativo: true,
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+
+      await widget.repository.cadastrarAluno(novo);
+      widget.onAlunoCadastrado();
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _salvando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar aluno: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final temTag = _uidController.text.trim().isNotEmpty;
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.person_add, color: Colors.amber),
+          SizedBox(width: 8),
+          Text('Cadastrar Novo Aluno'),
+        ],
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _nomeController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Nome do Aluno *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _turmaController,
+              decoration: const InputDecoration(
+                labelText: 'Turma (ex: Primários, Juvenis)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: temTag ? Colors.green.withValues(alpha: 0.15) : Colors.black26,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: temTag ? Colors.greenAccent : Colors.white24),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    temTag ? Icons.nfc_rounded : Icons.sensors_rounded,
+                    color: temTag ? Colors.greenAccent : Colors.amber,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          temTag ? 'Tag Vinculada' : 'Aproxime uma Tag / Chaveiro',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: temTag ? Colors.greenAccent : Colors.amber,
+                          ),
+                        ),
+                        Text(
+                          temTag ? _uidController.text : 'Opcional. Se passar a tag agora, ela será vinculada.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: temTag ? Colors.white : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (temTag)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: () => setState(() => _uidController.clear()),
+                      tooltip: 'Remover tag',
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _salvando ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _salvando ? null : _salvar,
+          child: _salvando
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                )
+              : const Text('Salvar'),
+        ),
+      ],
     );
   }
 }

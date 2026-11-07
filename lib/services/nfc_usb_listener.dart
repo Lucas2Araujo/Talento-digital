@@ -9,53 +9,73 @@ typedef OnNfcTagScanned = void Function(String uid);
 /// Serviço híbrido para capturar eventos de NFC:
 /// 1. Hardware HID USB (Web, Desktop e Android com adaptador USB-OTG ou Hub).
 /// 2. Antena NFC interna nativa do celular (Android via nfc_manager lendo o hardware UID).
+///
+/// Utiliza pilha LIFO de inscritos: apenas o ouvinte mais recente (topo da navegação/modal atual)
+/// recebe o evento da tag, impedindo que telas de fundo interfiram ou fechem diálogos ativos.
 class NfcUsbListener {
-  final OnNfcTagScanned onTagScanned;
-  final StringBuffer _buffer = StringBuffer();
-  DateTime? _lastCharTime;
+  static final List<OnNfcTagScanned> _subscribers = [];
+  static bool _keyboardHandlerAttached = false;
+  static bool _nativeAndroidNfcActive = false;
+  static final StringBuffer _buffer = StringBuffer();
+  static DateTime? _lastCharTime;
 
-  bool _isActive = true;
+  final OnNfcTagScanned onTagScanned;
+  bool _isActive = false;
 
   NfcUsbListener({required this.onTagScanned});
 
   void start() {
+    if (_isActive) return;
     _isActive = true;
-    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    _subscribers.add(onTagScanned);
+
+    if (!_keyboardHandlerAttached) {
+      HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+      _keyboardHandlerAttached = true;
+    }
 
     if (kIsWeb) {
-      registerWebNfcCallback((uid) {
-        if (_isActive) {
-          onTagScanned(uid);
-        }
-      });
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      registerWebNfcCallback(_dispatchToTopSubscriber);
+    } else if (defaultTargetPlatform == TargetPlatform.android && !_nativeAndroidNfcActive) {
       _startNativeAndroidNfc();
     }
   }
 
   void stop() {
+    if (!_isActive) return;
     _isActive = false;
-    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
-    _buffer.clear();
+    _subscribers.remove(onTagScanned);
 
-    if (kIsWeb) {
-      registerWebNfcCallback(null);
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      NfcManager.instance.stopSession().catchError((_) {});
+    if (_subscribers.isEmpty) {
+      _buffer.clear();
+      if (_keyboardHandlerAttached) {
+        HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
+        _keyboardHandlerAttached = false;
+      }
+      if (kIsWeb) {
+        registerWebNfcCallback(null);
+      } else if (defaultTargetPlatform == TargetPlatform.android && _nativeAndroidNfcActive) {
+        _nativeAndroidNfcActive = false;
+        NfcManager.instance.stopSession().catchError((_) {});
+      }
     }
   }
 
-  Future<void> _startNativeAndroidNfc() async {
+  static void _dispatchToTopSubscriber(String uid) {
+    if (_subscribers.isNotEmpty) {
+      _subscribers.last(uid);
+    }
+  }
+
+  static Future<void> _startNativeAndroidNfc() async {
     try {
       final availability = await NfcManager.instance.checkAvailability();
       if (availability != NfcAvailability.enabled) return;
 
+      _nativeAndroidNfcActive = true;
       await NfcManager.instance.startSession(
         pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
         onDiscovered: (NfcTag tag) async {
-          if (!_isActive) return;
-
-          // Extrai o identificador de hardware (UID) diretamente do chip
           final tagAndroid = NfcTagAndroid.from(tag);
           if (tagAndroid != null && tagAndroid.id.isNotEmpty) {
             final uid = tagAndroid.id
@@ -63,7 +83,7 @@ class NfcUsbListener {
                 .join()
                 .toUpperCase();
             if (uid.isNotEmpty) {
-              onTagScanned(uid);
+              _dispatchToTopSubscriber(uid);
             }
           }
         },
@@ -73,8 +93,8 @@ class NfcUsbListener {
     }
   }
 
-  bool _handleKeyEvent(KeyEvent event) {
-    if (!_isActive || event is! KeyDownEvent) return false;
+  static bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (_subscribers.isEmpty || event is! KeyDownEvent) return false;
 
     final now = DateTime.now();
     if (_lastCharTime != null && now.difference(_lastCharTime!) > const Duration(milliseconds: 600)) {
@@ -89,7 +109,7 @@ class NfcUsbListener {
       _buffer.clear();
 
       if (code.isNotEmpty && _isValidHexUid(code)) {
-        onTagScanned(code.toUpperCase());
+        _dispatchToTopSubscriber(code.toUpperCase());
         return true;
       }
       return false;
@@ -122,7 +142,7 @@ class NfcUsbListener {
     return false;
   }
 
-  String? _resolveCharacterFromKey(LogicalKeyboardKey key) {
+  static String? _resolveCharacterFromKey(LogicalKeyboardKey key) {
     // 1. Tenta pegar direto do label da tecla se for um único caractere hex
     final label = key.keyLabel;
     if (label.length == 1 && RegExp(r'^[0-9a-fA-F]$').hasMatch(label)) {
@@ -158,12 +178,12 @@ class NfcUsbListener {
     return null;
   }
 
-  bool _isValidHexUid(String code) {
+  static bool _isValidHexUid(String code) {
     return RegExp(r'^[0-9a-fA-F]{4,32}$').hasMatch(code);
   }
 
   /// Método para simulação em ambiente de desenvolvimento sem leitor físico
   void simulateScan(String uid) {
-    onTagScanned(uid.trim().toUpperCase());
+    _dispatchToTopSubscriber(uid.trim().toUpperCase());
   }
 }

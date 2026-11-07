@@ -17,16 +17,27 @@ void main() {
     for (int i = 0; i < tag.length; i++) {
       final ch = tag[i];
       LogicalKeyboardKey key;
-      if (ch == '0') key = LogicalKeyboardKey.digit0;
-      else if (ch == '1') key = LogicalKeyboardKey.digit1;
-      else if (ch == '2') key = LogicalKeyboardKey.digit2;
-      else if (ch == '4') key = LogicalKeyboardKey.digit4;
-      else if (ch == '6') key = LogicalKeyboardKey.digit6;
-      else if (ch == '8') key = LogicalKeyboardKey.digit8;
-      else if (ch == '9') key = LogicalKeyboardKey.digit9;
-      else if (ch == 'A') key = LogicalKeyboardKey.keyA;
-      else if (ch == 'E') key = LogicalKeyboardKey.keyE;
-      else key = LogicalKeyboardKey.keyF;
+      if (ch == '0') {
+        key = LogicalKeyboardKey.digit0;
+      } else if (ch == '1') {
+        key = LogicalKeyboardKey.digit1;
+      } else if (ch == '2') {
+        key = LogicalKeyboardKey.digit2;
+      } else if (ch == '4') {
+        key = LogicalKeyboardKey.digit4;
+      } else if (ch == '6') {
+        key = LogicalKeyboardKey.digit6;
+      } else if (ch == '8') {
+        key = LogicalKeyboardKey.digit8;
+      } else if (ch == '9') {
+        key = LogicalKeyboardKey.digit9;
+      } else if (ch == 'A') {
+        key = LogicalKeyboardKey.keyA;
+      } else if (ch == 'E') {
+        key = LogicalKeyboardKey.keyE;
+      } else {
+        key = LogicalKeyboardKey.keyF;
+      }
 
       HardwareKeyboard.instance.handleKeyEvent(
         KeyDownEvent(
@@ -52,74 +63,39 @@ void main() {
     listener.stop();
   });
 
-  test('NfcUsbListener ignora modifiers como Shift sem limpar o buffer', () {
-    String? scannedUid;
-    final listener = NfcUsbListener(onTagScanned: (uid) {
-      scannedUid = uid;
+  test('NfcUsbListener pilha LIFO: apenas o listener do topo recebe o scan', () {
+    String? scanTelaInicial;
+    String? scanModalOuCheckout;
+
+    final listenerTelaInicial = NfcUsbListener(onTagScanned: (uid) {
+      scanTelaInicial = uid;
     });
-    listener.start();
+    final listenerModal = NfcUsbListener(onTagScanned: (uid) {
+      scanModalOuCheckout = uid;
+    });
 
-    // Envia '0'
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.digit0,
-        logicalKey: LogicalKeyboardKey.digit0,
-        character: '0',
-        timeStamp: Duration(milliseconds: 10),
-      ),
-    );
+    // 1. Tela inicial aberta
+    listenerTelaInicial.start();
 
-    // Envia ShiftLeft (modifier comum enviado por leitores antes de letras)
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.shiftLeft,
-        logicalKey: LogicalKeyboardKey.shiftLeft,
-        character: null,
-        timeStamp: Duration(milliseconds: 20),
-      ),
-    );
+    // 2. Modal/Checkout abre por cima
+    listenerModal.start();
 
-    // Envia 'A' sem character (testa resolução via logicalKey)
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.keyA,
-        logicalKey: LogicalKeyboardKey.keyA,
-        character: null,
-        timeStamp: Duration(milliseconds: 30),
-      ),
-    );
+    // Simula escaneamento de tag
+    listenerModal.simulateScan('041693AB8A2681');
 
-    // Envia '1'
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.digit1,
-        logicalKey: LogicalKeyboardKey.digit1,
-        character: '1',
-        timeStamp: Duration(milliseconds: 40),
-      ),
-    );
+    // Apenas o modal/checkout deve receber! A tela inicial NÃO deve receber!
+    expect(scanModalOuCheckout, equals('041693AB8A2681'));
+    expect(scanTelaInicial, isNull);
 
-    // Envia '2'
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.digit2,
-        logicalKey: LogicalKeyboardKey.digit2,
-        character: '2',
-        timeStamp: Duration(milliseconds: 50),
-      ),
-    );
+    // 3. Modal/Checkout fecha
+    listenerModal.stop();
+    scanModalOuCheckout = null;
 
-    // Envia Enter
-    HardwareKeyboard.instance.handleKeyEvent(
-      const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.enter,
-        logicalKey: LogicalKeyboardKey.enter,
-        character: null,
-        timeStamp: Duration(milliseconds: 60),
-      ),
-    );
+    // Agora novo scan deve ir para a tela inicial
+    listenerTelaInicial.simulateScan('044EE8A8892681');
+    expect(scanTelaInicial, equals('044EE8A8892681'));
+    expect(scanModalOuCheckout, isNull);
 
-    expect(scannedUid, equals('0A12'));
-    listener.stop();
+    listenerTelaInicial.stop();
   });
 }

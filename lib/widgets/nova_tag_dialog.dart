@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../database/models.dart';
 import '../database/talentos_repository.dart';
+import '../services/nfc_usb_listener.dart';
 
 class NovaTagDialog extends StatefulWidget {
   final String uid;
@@ -36,6 +38,8 @@ class NovaTagDialog extends StatefulWidget {
 }
 
 class _NovaTagDialogState extends State<NovaTagDialog> {
+  late String _uid;
+  late final NfcUsbListener _nfcListener;
   bool _abaVincular = false;
   final _nomeController = TextEditingController();
   final _turmaController = TextEditingController();
@@ -47,7 +51,25 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
   @override
   void initState() {
     super.initState();
+    _uid = widget.uid;
+    _nfcListener = NfcUsbListener(onTagScanned: (newUid) {
+      if (mounted) {
+        setState(() {
+          _uid = newUid;
+        });
+        HapticFeedback.selectionClick();
+      }
+    });
+    _nfcListener.start();
     _carregarAlunosSemTag();
+  }
+
+  @override
+  void dispose() {
+    _nfcListener.stop();
+    _nomeController.dispose();
+    _turmaController.dispose();
+    super.dispose();
   }
 
   Future<void> _carregarAlunosSemTag() async {
@@ -73,7 +95,7 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
     setState(() => _salvando = true);
     try {
       final novo = AlunoModel(
-        uid: widget.uid,
+        uid: _uid,
         nome: nome,
         turma: _turmaController.text.trim().isEmpty ? null : _turmaController.text.trim(),
         saldoTalentos: 0,
@@ -105,10 +127,10 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
     try {
       await widget.repository.vincularTagAoAluno(
         uidAntigo: _alunoSelecionadoParaVincular!.uid,
-        novoUidTag: widget.uid,
+        novoUidTag: _uid,
       );
 
-      final atualizado = await widget.repository.buscarAlunoPorUid(widget.uid);
+      final atualizado = await widget.repository.buscarAlunoPorUid(_uid);
 
       if (mounted && atualizado != null) {
         Navigator.pop(context);
@@ -149,7 +171,7 @@ class _NovaTagDialogState extends State<NovaTagDialog> {
                 border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
               ),
               child: SelectableText(
-                'UID: ${widget.uid}',
+                'UID: $_uid',
                 style: const TextStyle(
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.bold,
