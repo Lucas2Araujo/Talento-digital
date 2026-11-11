@@ -34,6 +34,10 @@ void main() {
           await db.execute('''
             CREATE TABLE alunos (
               uid TEXT PRIMARY KEY,
+              tag_atual_uid TEXT,
+              tags_antigas TEXT,
+              avatar_id TEXT,
+              foto_base64 TEXT,
               nome TEXT NOT NULL,
               turma TEXT,
               saldo_talentos INTEGER NOT NULL DEFAULT 0,
@@ -46,6 +50,8 @@ void main() {
           await db.execute('''
             CREATE TABLE produtos (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
+              icone_id TEXT,
+              foto_base64 TEXT,
               nome TEXT NOT NULL,
               valor_talentos INTEGER NOT NULL,
               estoque INTEGER NOT NULL DEFAULT 0,
@@ -253,6 +259,131 @@ void main() {
       // Nenhuma venda gravada
       final vendas = await db.query('vendas');
       expect(vendas, isEmpty);
+    });
+    test('BuscaTagResult identifica tag ativa, extraviada e não cadastrada', () async {
+      await repo.cadastrarAluno(AlunoModel(
+        uid: 'ALUNO_1',
+        tagAtualUid: 'TAG_NOVA',
+        tagsAntigas: ['TAG_ANTIGA_1', 'TAG_ANTIGA_2'],
+        nome: 'Pedrinho',
+        saldoTalentos: 10,
+        updatedAt: DateTime.now().toIso8601String(),
+      ));
+
+      // 1. Tag ativa
+      final resAtivo = await repo.buscarAlunoPorTag('TAG_NOVA');
+      expect(resAtivo, isA<BuscaTagResultEncontradoAtivo>());
+      expect((resAtivo as BuscaTagResultEncontradoAtivo).aluno.nome, equals('Pedrinho'));
+
+      // 2. Tag antiga (extraviada)
+      final resExtraviado = await repo.buscarAlunoPorTag('TAG_ANTIGA_1');
+      expect(resExtraviado, isA<BuscaTagResultEncontradoExtraviado>());
+      expect((resExtraviado as BuscaTagResultEncontradoExtraviado).antigoDono.nome, equals('Pedrinho'));
+
+      // 3. Tag nunca cadastrada
+      final resNaoCadastrado = await repo.buscarAlunoPorTag('TAG_DESCONHECIDA');
+      expect(resNaoCadastrado, isA<BuscaTagResultNaoCadastrado>());
+    });
+
+    test('vincularTagAoAluno arquiva a tag anterior em tags_antigas', () async {
+      final aluno = await repo.buscarOuCadastrarAluno('TAG_INICIAL', nomePadrao: 'Aninha');
+      expect(aluno.tagAtualUid, equals('TAG_INICIAL'));
+      expect(aluno.tagsAntigas, isEmpty);
+
+      // Vincula nova tag física
+      await repo.vincularTagAoAluno(uidAntigo: aluno.uid, novoUidTag: 'TAG_SEGUNDA');
+
+      final atualizado = await repo.buscarAlunoPorUid('TAG_SEGUNDA');
+      expect(atualizado, isNotNull);
+      expect(atualizado!.tagAtualUid, equals('TAG_SEGUNDA'));
+      expect(atualizado.tagsAntigas, contains('TAG_INICIAL'));
+
+      // Reativa tag antiga
+      await repo.reativarTagAntiga(alunoUid: atualizado.uid, tagUid: 'TAG_INICIAL');
+      final reativado = await repo.buscarAlunoPorUid('TAG_INICIAL');
+      expect(reativado, isNotNull);
+      expect(reativado!.tagAtualUid, equals('TAG_INICIAL'));
+      expect(reativado.tagsAntigas, contains('TAG_SEGUNDA'));
+    });
+
+    test('Modo Sandbox opera 100% isolado em memória com dados de demonstração', () async {
+      repo.setSandboxMode(true);
+      expect(repo.isSandboxMode, isTrue);
+
+      final alunos = await repo.listarAlunos();
+      expect(alunos.length, equals(5));
+
+      final produtos = await repo.listarProdutos();
+      expect(produtos.length, equals(6));
+
+      // Teste de movimentação no sandbox
+      final saldoFinal = await repo.adicionarTalentos(
+        alunoUid: 'DEMO_1',
+        quantidade: 10,
+        motivo: 'Presença no Sandbox',
+      );
+      expect(saldoFinal, equals(55));
+
+      final alunoAtualizado = await repo.buscarAlunoPorUid('DEMO_1');
+      expect(alunoAtualizado?.saldoTalentos, equals(55));
+    });
+    test('Edge case: resiliência no fromMap com dados legados e tags nulas/corrompidas', () {
+      final mapaLegado = {
+        'uid': '04A1B2C3',
+        'nome': 'Criança Sem Tag Nova',
+        'saldo_talentos': '50', // string no lugar de num
+        'ativo': 1,
+        'tag_atual_uid': null,
+        'tags_antigas': null,
+      };
+
+      final aluno = AlunoModel.fromMap(mapaLegado);
+      expect(aluno.uid, equals('04A1B2C3'));
+      expect(aluno.tagAtualUid, equals('04A1B2C3')); // fallback para uid
+      expect(aluno.tagsAntigas, isEmpty);
+      expect(aluno.saldoTalentos, equals(50));
+    });
+
+    test('Edge case: reativação de tag sem ciclo infinito e dedução atômica no limite exato de saldo', () async {
+      await repo.cadastrarAluno(AlunoModel(
+        uid: 'ALUNO_EXATO',
+        tagAtualUid: 'TAG_1',
+        nome: 'João',
+        saldoTalentos: 15,
+        updatedAt: DateTime.now().toIso8601String(),
+      ));
+
+      // Vincula TAG_2 e depois TAG_3
+      await repo.vincularTagAoAluno(uidAntigo: 'ALUNO_EXATO', novoUidTag: 'TAG_2');
+      await repo.vincularTagAoAluno(uidAntigo: 'ALUNO_EXATO', novoUidTag: 'TAG_3');
+
+      final alunoHistorico = await repo.buscarAlunoPorUid('TAG_3');
+      expect(alunoHistorico!.tagsAntigas, containsAll(['TAG_1', 'TAG_2']));
+
+      // Reativa TAG_1 (TAG_3 deve ir para tags antigas, e TAG_1 não pode ficar duplicada)
+      await repo.reativarTagAntiga(alunoUid: 'ALUNO_EXATO', tagUid: 'TAG_1');
+      final reativado = await repo.buscarAlunoPorUid('TAG_1');
+      expect(reativado!.tagAtualUid, equals('TAG_1'));
+      expect(reativado.tagsAntigas, containsAll(['TAG_2', 'TAG_3']));
+      expect(reativado.tagsAntigas.where((t) => t == 'TAG_1'), isEmpty);
+
+      // Dedução atômica no limite exato de saldo (15 - 15 = 0 deve passar)
+      final saldoRestante = await repo.adicionarTalentos(
+        alunoUid: 'ALUNO_EXATO',
+        quantidade: -15,
+        motivo: 'Gasto total',
+      );
+      expect(saldoRestante, equals(0));
+
+      // Dedução de mais 1 com saldo 0 deve falhar com SaldoInsuficienteException
+      expect(
+        () => repo.adicionarTalentos(
+          alunoUid: 'ALUNO_EXATO',
+          quantidade: -1,
+          motivo: 'Tentativa de saldo negativo',
+        ),
+        throwsA(isA<SaldoInsuficienteException>()),
+      );
     });
   });
 }

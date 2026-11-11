@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/pin_security_service.dart';
+import '../theme/adventure_theme.dart';
 
 class PinAuthDialog extends StatefulWidget {
   final String titulo;
@@ -108,71 +109,82 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
     if (_pinService == null) return;
 
     if (!widget.modoAlteracao) {
-      // Modo Validação Normal
+      // Modo Normal: Validação simples
       final valido = _pinService!.verificarPin(_pinBuffer);
       if (valido) {
         HapticFeedback.mediumImpact();
-        SystemSound.play(SystemSoundType.click);
         Navigator.of(context).pop(true);
       } else {
         HapticFeedback.heavyImpact();
-        SystemSound.play(SystemSoundType.alert);
         setState(() {
           _erroMsg = 'PIN incorreto. Tente novamente.';
           _pinBuffer = '';
         });
       }
     } else {
-      // Modo Alteração de PIN em Etapas
-      if (_etapaAlteracao == 0) {
-        // Validação do PIN atual
-        if (_pinService!.verificarPin(_pinBuffer)) {
+      // Modo Alteração de PIN
+      switch (_etapaAlteracao) {
+        case 0: // Validar PIN atual
+          final valido = _pinService!.verificarPin(_pinBuffer);
+          if (valido) {
+            HapticFeedback.mediumImpact();
+            setState(() {
+              _pinAtualValidado = _pinBuffer;
+              _etapaAlteracao = 1;
+              _pinBuffer = '';
+              _erroMsg = '';
+            });
+          } else {
+            HapticFeedback.heavyImpact();
+            setState(() {
+              _erroMsg = 'PIN atual incorreto.';
+              _pinBuffer = '';
+            });
+          }
+          break;
+
+        case 1: // Receber Novo PIN
           setState(() {
-            _pinAtualValidado = _pinBuffer;
-            _etapaAlteracao = 1;
+            _novoPinDigitado = _pinBuffer;
+            _etapaAlteracao = 2;
             _pinBuffer = '';
             _erroMsg = '';
           });
-        } else {
-          HapticFeedback.heavyImpact();
-          setState(() {
-            _erroMsg = 'PIN atual incorreto.';
-            _pinBuffer = '';
-          });
-        }
-      } else if (_etapaAlteracao == 1) {
-        // Novo PIN digitado
-        setState(() {
-          _novoPinDigitado = _pinBuffer;
-          _etapaAlteracao = 2;
-          _pinBuffer = '';
-          _erroMsg = '';
-        });
-      } else if (_etapaAlteracao == 2) {
-        // Confirmação do novo PIN
-        if (_pinBuffer == _novoPinDigitado) {
-          await _pinService!.alterarPin(
-            pinAtualDigitado: _pinAtualValidado,
-            novoPin: _novoPinDigitado,
-          );
-          HapticFeedback.mediumImpact();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('PIN alterado com sucesso!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.of(context).pop(true);
+          break;
+
+        case 2: // Confirmar Novo PIN
+          if (_pinBuffer == _novoPinDigitado) {
+            try {
+              final ok = await _pinService!.alterarPin(
+                pinAtualDigitado: _pinAtualValidado,
+                novoPin: _novoPinDigitado,
+              );
+              if (ok && mounted) {
+                HapticFeedback.mediumImpact();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('PIN alterado com sucesso!'),
+                    backgroundColor: AdventureTheme.forestGreen,
+                  ),
+                );
+                Navigator.of(context).pop(true);
+              }
+            } catch (e) {
+              setState(() {
+                _erroMsg = 'Erro: $e';
+                _pinBuffer = '';
+              });
+            }
+          } else {
+            HapticFeedback.heavyImpact();
+            setState(() {
+              _erroMsg = 'Os PINs não coincidem. Recomece.';
+              _etapaAlteracao = 1;
+              _pinBuffer = '';
+              _novoPinDigitado = '';
+            });
           }
-        } else {
-          HapticFeedback.heavyImpact();
-          setState(() {
-            _erroMsg = 'Os PINs não conferem. Digite o novo PIN novamente.';
-            _etapaAlteracao = 1;
-            _pinBuffer = '';
-          });
-        }
+          break;
       }
     }
   }
@@ -181,11 +193,11 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
     if (!widget.modoAlteracao) return widget.subtitulo;
     switch (_etapaAlteracao) {
       case 0:
-        return 'Digite o PIN atual';
+        return 'Digite o PIN atual para autorizar a troca';
       case 1:
         return 'Digite o NOVO PIN de 4 dígitos';
       case 2:
-        return 'Confirme o NOVO PIN de 4 dígitos';
+        return 'Confirme o NOVO PIN digitado';
       default:
         return '';
     }
@@ -193,9 +205,19 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AdventureTheme.darkSurface : AdventureTheme.surface;
+    final cardBg = isDark ? AdventureTheme.darkSurfaceVariant : Colors.white;
+    final textColor = isDark ? AdventureTheme.darkTextLight : AdventureTheme.textDark;
+    final textMuted = isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted;
+    final borderColor = isDark ? AdventureTheme.darkOutline : AdventureTheme.woodBrown;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: borderColor, width: 2.5),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: SingleChildScrollView(
@@ -207,22 +229,23 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
+                  color: AdventureTheme.goldCoin,
                   shape: BoxShape.circle,
+                  border: Border.all(color: AdventureTheme.goldDark, width: 2),
                 ),
-                child: const Icon(Icons.lock_rounded, color: Colors.amber, size: 32),
+                child: const Icon(Icons.lock_rounded, color: AdventureTheme.woodDark, size: 28),
               ),
               const SizedBox(height: 12),
               Text(
                 widget.titulo,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AdventureTheme.titleFredoka.copyWith(fontSize: 18, color: textColor),
               ),
               const SizedBox(height: 4),
               Text(
                 _getSubtituloEtapa(),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                style: AdventureTheme.bodyNunito.copyWith(fontSize: 13, color: textMuted),
               ),
               const SizedBox(height: 20),
 
@@ -234,20 +257,20 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 18,
-                    height: 18,
+                    width: 20,
+                    height: 20,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: preenchido ? Colors.amber : Colors.transparent,
+                      color: preenchido ? AdventureTheme.goldCoin : cardBg,
                       border: Border.all(
-                        color: preenchido ? Colors.amber : Colors.grey.shade600,
-                        width: 2,
+                        color: preenchido ? AdventureTheme.goldDark : borderColor.withValues(alpha: 0.5),
+                        width: 2.2,
                       ),
                       boxShadow: preenchido
                           ? [
                               BoxShadow(
-                                color: Colors.amber.withValues(alpha: 0.4),
-                                blurRadius: 8,
+                                color: AdventureTheme.goldDark.withValues(alpha: 0.4),
+                                blurRadius: 6,
                                 spreadRadius: 1,
                               ),
                             ]
@@ -264,7 +287,7 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
                 child: _erroMsg.isNotEmpty
                     ? Text(
                         _erroMsg,
-                        style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: AdventureTheme.errorCoral, fontSize: 12, fontWeight: FontWeight.bold),
                       )
                     : null,
               ),
@@ -272,14 +295,14 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
               const SizedBox(height: 8),
 
               // Teclado Numérico Touch
-              _buildTecladoNumerico(),
+              _buildTecladoNumerico(cardBg, textColor, borderColor),
 
               const SizedBox(height: 12),
 
               // Botão Cancelar
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                child: Text('Cancelar', style: TextStyle(color: textMuted, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -288,60 +311,64 @@ class _PinAuthDialogState extends State<PinAuthDialog> {
     );
   }
 
-  Widget _buildTecladoNumerico() {
+  Widget _buildTecladoNumerico(Color btnBg, Color txtColor, Color border) {
     return Table(
       children: [
         TableRow(
           children: [
-            _buildKeypadBtn('1'),
-            _buildKeypadBtn('2'),
-            _buildKeypadBtn('3'),
+            _buildKeypadBtn('1', btnBg, txtColor, border),
+            _buildKeypadBtn('2', btnBg, txtColor, border),
+            _buildKeypadBtn('3', btnBg, txtColor, border),
           ],
         ),
         TableRow(
           children: [
-            _buildKeypadBtn('4'),
-            _buildKeypadBtn('5'),
-            _buildKeypadBtn('6'),
+            _buildKeypadBtn('4', btnBg, txtColor, border),
+            _buildKeypadBtn('5', btnBg, txtColor, border),
+            _buildKeypadBtn('6', btnBg, txtColor, border),
           ],
         ),
         TableRow(
           children: [
-            _buildKeypadBtn('7'),
-            _buildKeypadBtn('8'),
-            _buildKeypadBtn('9'),
+            _buildKeypadBtn('7', btnBg, txtColor, border),
+            _buildKeypadBtn('8', btnBg, txtColor, border),
+            _buildKeypadBtn('9', btnBg, txtColor, border),
           ],
         ),
         TableRow(
           children: [
-            _buildKeypadBtn('C', cor: Colors.redAccent, onTap: _limpar),
-            _buildKeypadBtn('0'),
-            _buildKeypadBtn('⌫', cor: Colors.orangeAccent, onTap: _apagar),
+            _buildKeypadBtn('C', btnBg, AdventureTheme.errorCoral, border, onTap: _limpar),
+            _buildKeypadBtn('0', btnBg, txtColor, border),
+            _buildKeypadBtn('⌫', btnBg, AdventureTheme.goldDark, border, onTap: _apagar),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildKeypadBtn(String rotulo, {Color? cor, VoidCallback? onTap}) {
+  Widget _buildKeypadBtn(
+    String rotulo,
+    Color btnBg,
+    Color txtColor,
+    Color border, {
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(4.0),
-      child: Material(
-        color: const Color(0xFF282828),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap ?? () => _onTeclaPressionada(rotulo),
-          child: Container(
-            height: 52,
-            alignment: Alignment.center,
-            child: Text(
-              rotulo,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: cor ?? Colors.white,
-              ),
+      child: AdventureButton(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        backgroundColor: btnBg,
+        borderColor: border.withValues(alpha: 0.6),
+        shadowColor: border,
+        borderRadius: 14,
+        onPressed: onTap ?? () => _onTeclaPressionada(rotulo),
+        child: Center(
+          child: Text(
+            rotulo,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: txtColor,
             ),
           ),
         ),

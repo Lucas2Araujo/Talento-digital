@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../database/talentos_repository.dart';
-import '../services/supabase_sync_service.dart';
+import '../services/firestore_sync_service.dart';
+import '../theme/adventure_theme.dart';
 import '../widgets/pin_auth_dialog.dart';
 
 class AdminPainelDialog extends StatefulWidget {
@@ -41,16 +43,12 @@ class AdminPainelDialog extends StatefulWidget {
 }
 
 class _AdminPainelDialogState extends State<AdminPainelDialog> {
-  SupabaseSyncService? _syncService;
+  FirestoreSyncService? _syncService;
   int _pendentes = 0;
   bool _conectado = false;
   bool _testandoConexao = true;
   bool _sincronizando = false;
   SyncResult? _ultimoResultado;
-
-  final _urlController = TextEditingController();
-  final _anonKeyController = TextEditingController();
-  bool _editandoCredenciais = false;
 
   @override
   void initState() {
@@ -58,19 +56,9 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
     _inicializar();
   }
 
-  @override
-  void dispose() {
-    _urlController.dispose();
-    _anonKeyController.dispose();
-    super.dispose();
-  }
-
   Future<void> _inicializar() async {
-    final service = await SupabaseSyncService.getInstance();
+    final service = await FirestoreSyncService.getInstance();
     final totalPendentes = await widget.repository.contarTotalPendentesSincronizacao();
-
-    _urlController.text = service.supabaseUrl;
-    _anonKeyController.text = service.supabaseAnonKey;
 
     if (mounted) {
       setState(() {
@@ -121,26 +109,6 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
     }
   }
 
-  Future<void> _salvarCredenciais() async {
-    if (_syncService == null) return;
-    await _syncService!.salvarConfiguracoes(
-      url: _urlController.text.trim(),
-      anonKey: _anonKeyController.text.trim(),
-    );
-
-    setState(() => _editandoCredenciais = false);
-    await _verificarConexao();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Configurações do Supabase salvas com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
   String _formatarDataHora(String? iso) {
     if (iso == null || iso.isEmpty) return 'Nunca sincronizado';
     try {
@@ -157,9 +125,18 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AdventureTheme.darkSurface : AdventureTheme.surface;
+    final cardBg = isDark ? AdventureTheme.darkSurfaceVariant : Colors.white;
+    final textColor = isDark ? AdventureTheme.darkTextLight : AdventureTheme.textDark;
+    final borderColor = isDark ? AdventureTheme.darkOutline : AdventureTheme.woodBrown;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: borderColor, width: 2.5),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 580, maxHeight: 680),
         child: Padding(
@@ -167,94 +144,126 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Cabeçalho
+              // Cabeçalho Estilo Stitch
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AdventureTheme.goldCoin,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AdventureTheme.goldDark, width: 2),
                     ),
-                    child: const Icon(Icons.cloud_sync_rounded, color: Colors.amber, size: 26),
+                    child: const Icon(Icons.cloud_sync_rounded, color: AdventureTheme.woodDark, size: 24),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Painel de Sincronização & Gestão',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                          'Sincronização & Gestão',
+                          style: AdventureTheme.titleFredoka.copyWith(
+                            fontSize: 18,
+                            color: textColor,
+                          ),
                         ),
                         Text(
-                          'Arquitetura Local-First (Offline-First)',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          'Google Cloud Firestore (Offline-First)',
+                          style: AdventureTheme.bodyNunito.copyWith(
+                            fontSize: 12,
+                            color: isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: textColor),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(height: 24),
+              const SizedBox(height: 12),
+              Divider(color: borderColor.withValues(alpha: 0.3)),
+              const SizedBox(height: 8),
 
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Cartões de Status (Conexão + Pendentes)
+                      // Cartões de Status (Firebase Nuvem + Pendentes SQLite)
                       Row(
                         children: [
                           Expanded(
                             child: _buildStatusCard(
-                              titulo: 'STATUS NUVEM',
+                              context: context,
+                              titulo: 'STATUS FIREBASE',
                               conteudo: _testandoConexao
-                                  ? 'Testando...'
-                                  : (_conectado ? 'Conectado' : 'Offline / Inacessível'),
-                              cor: _conectado ? Colors.greenAccent : Colors.grey,
-                              icone: _conectado ? Icons.cloud_done : Icons.cloud_off,
+                                  ? 'Verificando...'
+                                  : (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux)
+                                      ? 'SQLite Local (Linux)'
+                                      : (_conectado ? 'Conectado (Nuvem)' : 'Cache Local Ativo'),
+                              cor: _conectado ? AdventureTheme.forestGreen : AdventureTheme.skyBlue,
+                              icone: _conectado ? Icons.cloud_done : Icons.cloud_queue,
+                              bgColor: cardBg,
+                              borderColor: borderColor,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildStatusCard(
-                              titulo: 'PENDENTES (SQLITE)',
+                              context: context,
+                              titulo: 'PENDENTES LOCAL',
                               conteudo: '$_pendentes registro(s)',
-                              cor: _pendentes > 0 ? Colors.orangeAccent : Colors.blueAccent,
+                              cor: _pendentes > 0 ? AdventureTheme.goldCoin : AdventureTheme.forestGreen,
                               icone: Icons.pending_actions,
+                              bgColor: cardBg,
+                              borderColor: borderColor,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
 
-                      // Data da última sincronização
+                      // Informações do Projeto Firebase
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF252525),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white10),
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor.withValues(alpha: 0.4)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.access_time_rounded, size: 18, color: Colors.grey),
+                            const Icon(Icons.local_fire_department, size: 20, color: Colors.orange),
                             const SizedBox(width: 8),
-                            const Text('Última Sincronização: ', style: TextStyle(color: Colors.grey, fontSize: 13)),
                             Expanded(
-                              child: Text(
-                                _formatarDataHora(_syncService?.ultimaSincronizacao),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Projeto: talentos-f34f3',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Última sincronização: ${_formatarDataHora(_syncService?.ultimaSincronizacao)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             IconButton(
                               tooltip: 'Verificar conexão',
-                              icon: const Icon(Icons.refresh, size: 18),
+                              icon: Icon(Icons.refresh, size: 20, color: textColor),
                               onPressed: _testandoConexao ? null : _verificarConexao,
                             ),
                           ],
@@ -263,25 +272,33 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
 
                       const SizedBox(height: 16),
 
-                      // Botão Principal: Sincronizar Agora
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
+                      // Botão Principal: Sincronizar Agora (AdventureButton 3D)
+                      AdventureButton(
+                        backgroundColor: AdventureTheme.goldCoin,
+                        borderColor: AdventureTheme.goldDark,
+                        shadowColor: AdventureTheme.woodDark,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         onPressed: (_sincronizando || _syncService == null) ? null : _executarSincronizacao,
-                        icon: _sincronizando
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                              )
-                            : const Icon(Icons.sync),
-                        label: Text(
-                          _sincronizando ? 'Sincronizando com Supabase...' : 'SINCRONIZAR AGORA',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _sincronizando
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AdventureTheme.woodDark),
+                                  )
+                                : const Icon(Icons.sync, color: AdventureTheme.woodDark, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              _sincronizando ? 'SINCRONIZANDO COM FIREBASE...' : 'SINCRONIZAR COM FIREBASE',
+                              style: AdventureTheme.titleFredoka.copyWith(
+                                color: AdventureTheme.woodDark,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -289,129 +306,184 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
                       if (_ultimoResultado != null) ...[
                         const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: _ultimoResultado!.sucesso
-                                ? Colors.green.shade900.withValues(alpha: 0.3)
-                                : Colors.red.shade900.withValues(alpha: 0.3),
+                                ? AdventureTheme.forestGreen.withValues(alpha: 0.15)
+                                : AdventureTheme.errorCoral.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _ultimoResultado!.sucesso ? Colors.greenAccent : Colors.redAccent,
+                              color: _ultimoResultado!.sucesso
+                                  ? AdventureTheme.forestGreen
+                                  : AdventureTheme.errorCoral,
+                              width: 1.5,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    _ultimoResultado!.sucesso ? Icons.check_circle : Icons.error_outline,
-                                    color: _ultimoResultado!.sucesso ? Colors.greenAccent : Colors.redAccent,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _ultimoResultado!.mensagem,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: _ultimoResultado!.sucesso ? Colors.greenAccent : Colors.redAccent,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Icon(
+                                _ultimoResultado!.sucesso ? Icons.check_circle : Icons.error_outline,
+                                color: _ultimoResultado!.sucesso
+                                    ? AdventureTheme.forestGreen
+                                    : AdventureTheme.errorCoral,
+                                size: 20,
                               ),
-                              if (_ultimoResultado!.sucesso) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  '• Enviados para a nuvem: ${_ultimoResultado!.totalEnviados} '
-                                  '(Alunos: ${_ultimoResultado!.alunosEnviados}, Produtos: ${_ultimoResultado!.produtosEnviados}, '
-                                  'Transações: ${_ultimoResultado!.transacoesEnviadas}, Vendas: ${_ultimoResultado!.vendasEnviadas})\n'
-                                  '• Baixados da nuvem: ${_ultimoResultado!.registrosRecebidos} registro(s)',
-                                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _ultimoResultado!.mensagem,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: _ultimoResultado!.sucesso
+                                        ? AdventureTheme.forestGreen
+                                        : AdventureTheme.errorCoral,
+                                  ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
                       ],
 
                       const SizedBox(height: 20),
-                      const Divider(),
-                      const SizedBox(height: 8),
-
-                      // Configuração de Credenciais do Supabase
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.key_rounded, size: 18, color: Colors.amber),
-                              SizedBox(width: 8),
-                              Text('Credenciais Supabase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() => _editandoCredenciais = !_editandoCredenciais);
-                            },
-                            child: Text(_editandoCredenciais ? 'Ocultar' : 'Editar / Ver'),
-                          ),
-                        ],
-                      ),
-
-                      if (_editandoCredenciais) ...[
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _urlController,
-                          decoration: const InputDecoration(
-                            labelText: 'Supabase URL',
-                            hintText: 'https://xyzcompany.supabase.co',
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.link),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _anonKeyController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Supabase Anon Key',
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.vpn_key),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton.icon(
-                            onPressed: _salvarCredenciais,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Salvar Credenciais'),
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 8),
+                      Divider(color: borderColor.withValues(alpha: 0.3)),
+                      const SizedBox(height: 10),
 
                       // Seção de Segurança: Alterar PIN
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const CircleAvatar(
-                          backgroundColor: Color(0xFF282828),
-                          child: Icon(Icons.pin, color: Colors.amber),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor.withValues(alpha: 0.4)),
                         ),
-                        title: const Text('PIN de Acesso Administrativo', style: TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: const Text('Altere a senha numérica de 4 dígitos', style: TextStyle(fontSize: 12)),
-                        trailing: OutlinedButton(
-                          onPressed: () {
-                            PinAuthDialog.abrirAlteracaoDePin(context);
-                          },
-                          child: const Text('Alterar PIN'),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AdventureTheme.goldCoin.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.pin, color: AdventureTheme.goldDark, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PIN do Professor / Admin',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                                  ),
+                                  Text(
+                                    'Altere a senha numérica de 4 dígitos',
+                                    style: TextStyle(fontSize: 11, color: isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AdventureButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              backgroundColor: cardBg,
+                              borderColor: borderColor,
+                              shadowColor: isDark ? Colors.black45 : AdventureTheme.woodDark,
+                              borderRadius: 12,
+                              onPressed: () => PinAuthDialog.abrirAlteracaoDePin(context),
+                              child: Text(
+                                'Alterar PIN',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Seção do Modo Sandbox (Demonstração / Testes)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: widget.repository.isSandboxMode
+                              ? Colors.orange.withValues(alpha: 0.15)
+                              : cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: widget.repository.isSandboxMode
+                                ? Colors.orange
+                                : borderColor.withValues(alpha: 0.4),
+                            width: widget.repository.isSandboxMode ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.science, color: Colors.orange, size: 22),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Modo Demonstração (Sandbox)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor),
+                                  ),
+                                ),
+                                Switch(
+                                  value: widget.repository.isSandboxMode,
+                                  activeTrackColor: Colors.orange,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      widget.repository.setSandboxMode(val);
+                                    });
+                                    widget.onDadosAtualizados?.call();
+                                  },
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'Executa o app em memória isolada sem salvar alterações no banco de dados da nuvem.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted,
+                              ),
+                            ),
+                            if (widget.repository.isSandboxMode) ...[
+                              const SizedBox(height: 12),
+                              AdventureButton(
+                                backgroundColor: Colors.orange.shade800,
+                                borderColor: Colors.orange.shade900,
+                                shadowColor: Colors.brown.shade900,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                onPressed: () {
+                                  widget.repository.gerarDadosDemonstracao();
+                                  widget.onDadosAtualizados?.call();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('5 crianças e 6 produtos fictícios carregados no Sandbox!'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Gerar Dados de Demonstração',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
@@ -426,17 +498,21 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
   }
 
   Widget _buildStatusCard({
+    required BuildContext context,
     required String titulo,
     required String conteudo,
     required Color cor,
     required IconData icone,
+    required Color bgColor,
+    required Color borderColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF252525),
+        color: bgColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: cor.withValues(alpha: 0.3)),
+        border: Border.all(color: borderColor.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,20 +523,20 @@ class _AdminPainelDialogState extends State<AdminPainelDialog> {
               Text(
                 titulo,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                  color: Colors.grey.shade400,
+                  letterSpacing: 1.0,
+                  color: isDark ? AdventureTheme.darkTextMuted : AdventureTheme.textMuted,
                 ),
               ),
               Icon(icone, color: cor, size: 18),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             conteudo,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
               color: cor,
             ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460047173431",
+    "project_id": "talentos-f34f3",
+    "storage_bucket": "talentos-f34f3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460047173431:android:a450fc3519ab73a0773cb2",
+        "android_client_info": {
+          "package_name": "com.iasd.recanto.talento_digital"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaMi3eaCCMPL5XSdMnQMtRwWG7yuJ_6wg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

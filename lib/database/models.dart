@@ -1,5 +1,39 @@
+import 'dart:convert';
+
+sealed class BuscaTagResult {
+  const BuscaTagResult();
+
+  const factory BuscaTagResult.encontradoAtivo(AlunoModel aluno) =
+      BuscaTagResultEncontradoAtivo;
+  const factory BuscaTagResult.encontradoExtraviado(
+          AlunoModel antigoDono, String tagLida) =
+      BuscaTagResultEncontradoExtraviado;
+  const factory BuscaTagResult.naoCadastrado(String tagLida) =
+      BuscaTagResultNaoCadastrado;
+}
+
+class BuscaTagResultEncontradoAtivo extends BuscaTagResult {
+  final AlunoModel aluno;
+  const BuscaTagResultEncontradoAtivo(this.aluno);
+}
+
+class BuscaTagResultEncontradoExtraviado extends BuscaTagResult {
+  final AlunoModel antigoDono;
+  final String tagLida;
+  const BuscaTagResultEncontradoExtraviado(this.antigoDono, this.tagLida);
+}
+
+class BuscaTagResultNaoCadastrado extends BuscaTagResult {
+  final String tagLida;
+  const BuscaTagResultNaoCadastrado(this.tagLida);
+}
+
 class AlunoModel {
   final String uid;
+  final String? tagAtualUid;
+  final List<String> tagsAntigas;
+  final String? avatarId;
+  final String? fotoBase64;
   final String nome;
   final String? turma;
   final int saldoTalentos;
@@ -9,16 +43,25 @@ class AlunoModel {
 
   AlunoModel({
     required this.uid,
+    String? tagAtualUid,
+    List<String>? tagsAntigas,
+    this.avatarId,
+    this.fotoBase64,
     required this.nome,
     this.turma,
     this.saldoTalentos = 0,
     this.ativo = true,
     required this.updatedAt,
     this.synced = false,
-  });
+  })  : tagAtualUid = tagAtualUid ?? uid,
+        tagsAntigas = tagsAntigas ?? const [];
 
   Map<String, dynamic> toMap() => {
         'uid': uid,
+        'tag_atual_uid': tagAtualUid ?? uid,
+        'tags_antigas': jsonEncode(tagsAntigas),
+        if (avatarId != null) 'avatar_id': avatarId,
+        if (fotoBase64 != null) 'foto_base64': fotoBase64,
         'nome': nome,
         'turma': turma,
         'saldo_talentos': saldoTalentos,
@@ -27,19 +70,75 @@ class AlunoModel {
         'synced': synced ? 1 : 0,
       };
 
-  factory AlunoModel.fromMap(Map<String, dynamic> map) => AlunoModel(
-        uid: map['uid'] as String,
-        nome: map['nome'] as String,
-        turma: map['turma'] as String?,
-        saldoTalentos: (map['saldo_talentos'] as num?)?.toInt() ?? 0,
-        ativo: (map['ativo'] as int?) != 0,
-        updatedAt: map['updated_at'] as String,
-        synced: (map['synced'] as int?) == 1,
-      );
+  factory AlunoModel.fromMap(Map<String, dynamic> map) {
+    final uidVal = (map['uid'] ?? map['id'] ?? '') as String;
+    final tagsAntigasRaw = map['tags_antigas'];
+    List<String> tagsAntigasParsed = const [];
+    if (tagsAntigasRaw is List) {
+      tagsAntigasParsed = tagsAntigasRaw.map((e) => e.toString()).toList();
+    } else if (tagsAntigasRaw is String && tagsAntigasRaw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(tagsAntigasRaw);
+        if (decoded is List) {
+          tagsAntigasParsed = decoded.map((e) => e.toString()).toList();
+        }
+      } catch (_) {}
+    }
+
+    return AlunoModel(
+      uid: uidVal,
+      tagAtualUid: (map['tag_atual_uid'] as String?) ?? uidVal,
+      tagsAntigas: tagsAntigasParsed,
+      avatarId: map['avatar_id'] as String?,
+      fotoBase64: map['foto_base64'] as String?,
+      nome: (map['nome'] as String?) ?? 'Aluno',
+      turma: map['turma'] as String?,
+      saldoTalentos: map['saldo_talentos'] is num
+          ? (map['saldo_talentos'] as num).toInt()
+          : int.tryParse(map['saldo_talentos']?.toString() ?? '') ?? 0,
+      ativo: map['ativo'] is bool
+          ? map['ativo'] as bool
+          : ((map['ativo'] as num?)?.toInt() ?? 1) != 0,
+      updatedAt: (map['updated_at'] as String?) ?? DateTime.now().toIso8601String(),
+      synced: map['synced'] is bool
+          ? map['synced'] as bool
+          : ((map['synced'] as num?)?.toInt() ?? 0) == 1,
+    );
+  }
+
+  AlunoModel copyWith({
+    String? uid,
+    String? tagAtualUid,
+    List<String>? tagsAntigas,
+    String? avatarId,
+    String? fotoBase64,
+    String? nome,
+    String? turma,
+    int? saldoTalentos,
+    bool? ativo,
+    String? updatedAt,
+    bool? synced,
+  }) {
+    return AlunoModel(
+      uid: uid ?? this.uid,
+      tagAtualUid: tagAtualUid ?? this.tagAtualUid,
+      tagsAntigas: tagsAntigas ?? this.tagsAntigas,
+      avatarId: avatarId ?? this.avatarId,
+      fotoBase64: fotoBase64 ?? this.fotoBase64,
+      nome: nome ?? this.nome,
+      turma: turma ?? this.turma,
+      saldoTalentos: saldoTalentos ?? this.saldoTalentos,
+      ativo: ativo ?? this.ativo,
+      updatedAt: updatedAt ?? this.updatedAt,
+      synced: synced ?? this.synced,
+    );
+  }
 }
 
 class ProdutoModel {
   final int? id;
+  final String? iconeId;
+  final String? fotoBase64;
   final String nome;
   final int valorTalentos;
   final int estoque;
@@ -49,6 +148,8 @@ class ProdutoModel {
 
   ProdutoModel({
     this.id,
+    this.iconeId,
+    this.fotoBase64,
     required this.nome,
     required this.valorTalentos,
     this.estoque = 0,
@@ -59,6 +160,8 @@ class ProdutoModel {
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
+        if (iconeId != null) 'icone_id': iconeId,
+        if (fotoBase64 != null) 'foto_base64': fotoBase64,
         'nome': nome,
         'valor_talentos': valorTalentos,
         'estoque': estoque,
@@ -68,14 +171,46 @@ class ProdutoModel {
       };
 
   factory ProdutoModel.fromMap(Map<String, dynamic> map) => ProdutoModel(
-        id: map['id'] as int?,
-        nome: map['nome'] as String,
-        valorTalentos: (map['valor_talentos'] as num).toInt(),
+        id: map['id'] is num
+            ? (map['id'] as num).toInt()
+            : int.tryParse(map['id']?.toString() ?? ''),
+        iconeId: map['icone_id'] as String?,
+        fotoBase64: map['foto_base64'] as String?,
+        nome: (map['nome'] as String?) ?? 'Produto',
+        valorTalentos: (map['valor_talentos'] as num?)?.toInt() ?? 0,
         estoque: (map['estoque'] as num?)?.toInt() ?? 0,
-        esgotado: (map['esgotado'] as int?) == 1,
-        updatedAt: map['updated_at'] as String,
-        synced: (map['synced'] as int?) == 1,
+        esgotado: map['esgotado'] is bool
+            ? map['esgotado'] as bool
+            : ((map['esgotado'] as num?)?.toInt() ?? 0) == 1,
+        updatedAt: (map['updated_at'] as String?) ?? DateTime.now().toIso8601String(),
+        synced: map['synced'] is bool
+            ? map['synced'] as bool
+            : ((map['synced'] as num?)?.toInt() ?? 0) == 1,
       );
+
+  ProdutoModel copyWith({
+    int? id,
+    String? iconeId,
+    String? fotoBase64,
+    String? nome,
+    int? valorTalentos,
+    int? estoque,
+    bool? esgotado,
+    String? updatedAt,
+    bool? synced,
+  }) {
+    return ProdutoModel(
+      id: id ?? this.id,
+      iconeId: iconeId ?? this.iconeId,
+      fotoBase64: fotoBase64 ?? this.fotoBase64,
+      nome: nome ?? this.nome,
+      valorTalentos: valorTalentos ?? this.valorTalentos,
+      estoque: estoque ?? this.estoque,
+      esgotado: esgotado ?? this.esgotado,
+      updatedAt: updatedAt ?? this.updatedAt,
+      synced: synced ?? this.synced,
+    );
+  }
 }
 
 class TransacaoSaldoModel {

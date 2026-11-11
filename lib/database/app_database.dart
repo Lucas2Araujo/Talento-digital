@@ -85,6 +85,10 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS alunos (
         uid TEXT PRIMARY KEY,
+        tag_atual_uid TEXT,
+        tags_antigas TEXT,
+        avatar_id TEXT,
+        foto_base64 TEXT,
         nome TEXT NOT NULL,
         turma TEXT,
         saldo_talentos INTEGER NOT NULL DEFAULT 0,
@@ -97,6 +101,8 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS produtos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        icone_id TEXT,
+        foto_base64 TEXT,
         nome TEXT NOT NULL,
         valor_talentos INTEGER NOT NULL,
         estoque INTEGER NOT NULL DEFAULT 0,

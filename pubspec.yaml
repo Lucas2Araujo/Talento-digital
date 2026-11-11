@@ -41,8 +41,9 @@ dependencies:
   path: ^1.9.1
   uuid: ^4.6.0
   path_provider: ^2.1.6
-  supabase_flutter: ^2.18.3
   nfc_manager: ^4.3.0
+  firebase_core: ^5.1.0
+  cloud_firestore: ^7.1.0
 
 dev_dependencies:
   flutter_test:

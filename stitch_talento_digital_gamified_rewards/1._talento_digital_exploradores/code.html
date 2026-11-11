@@ -1,0 +1,545 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talento Digital — Exploradores</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'forest-green': '#2A9D8F',
+        'sky-blue': '#219EBC',
+        'gold-coin': '#FFB703',
+        'wood-brown': '#8B5A2B',
+        'gold-dark': '#D48B00',
+        'forest-green-dark': '#1F756B',
+        'wood-dark': '#5E3B1B',
+        'sky-blue-dark': '#166B80',
+        'success': '#2A9D8F',
+        'warning': '#FFB703',
+        'error': '#E76F51',
+        'light-primary': '#2A9D8F',
+        'light-on-primary': '#262626',
+        'light-secondary': '#FFB703',
+        'light-on-secondary': '#3A2600',
+        'light-tertiary': '#219EBC',
+        'light-on-tertiary': '#2B2B2B',
+        'light-surface': '#FAF3E0',
+        'light-on-surface': '#2D261E',
+        'light-surface-variant': '#F3EAD3',
+        'light-on-surface-variant': '#6B5E50',
+        'light-outline': '#8B5A2B',
+        'dark-primary': '#48CAE4',
+        'dark-on-primary': '#03045E',
+        'dark-secondary': '#FFD166',
+        'dark-on-secondary': '#3A2600',
+        'dark-tertiary': '#52B788',
+        'dark-on-tertiary': '#081C15',
+        'dark-surface': '#221C16',
+        'dark-on-surface': '#F7EDE2',
+        'dark-surface-variant': '#322921',
+        'dark-on-surface-variant': '#C4B5A5',
+        'dark-outline': '#D4A373',
+      },
+      borderRadius: {
+        'sm': '8px',
+        'md': '14px',
+        'lg': '18px',
+        'xl': '24px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '40px',
+        'page-margin': '20px',
+      },
+      fontFamily: {
+        'display': ['"Fredoka"', 'sans-serif'],
+        'headline': ['"Fredoka"', 'sans-serif'],
+        'title': ['"Fredoka"', 'sans-serif'],
+        'body': ['"Nunito"', 'sans-serif'],
+        'label': ['"Fredoka"', 'sans-serif'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-lg-mobile': ['30px', { lineHeight: '38px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-lg': ['32px', { lineHeight: '40px', fontWeight: '700' }],
+        'headline-lg-mobile': ['24px', { lineHeight: '32px', fontWeight: '700' }],
+        'headline-md': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+        'title-lg': ['20px', { lineHeight: '28px', fontWeight: '600' }],
+        'title-md': ['18px', { lineHeight: '26px', fontWeight: '700' }],
+        'body-lg': ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        'body-md': ['14px', { lineHeight: '20px', fontWeight: '500' }],
+        'label-lg': ['16px', { lineHeight: '22px', letterSpacing: '0.2px', fontWeight: '600' }],
+        'label-md': ['14px', { lineHeight: '18px', fontWeight: '600' }],
+        'label-sm': ['12px', { lineHeight: '16px', fontWeight: '700' }],
+      },
+      transitionDuration: {
+        'tactile-press': '100ms',
+        'modal-spring': '250ms',
+        'coin-pulse': '1200ms',
+      },
+      transitionDelay: {
+        'tactile-press': '0ms',
+        'modal-spring': '0ms',
+        'coin-pulse': '0ms',
+      },
+      transitionTimingFunction: {
+        'tactile-press': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'modal-spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'coin-pulse': 'ease-in-out',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Nunito:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    @keyframes pulse-wave {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+    .animate-wave {
+      animation: pulse-wave 2.2s infinite ease-in-out;
+    }
+    @keyframes sparkle-float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(8deg); }
+    }
+    .sparkle {
+      animation: sparkle-float 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-light-surface min-h-[1024px] text-light-on-surface font-body flex flex-col antialiased selection:bg-gold-coin selection:text-wood-dark" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+  <!-- 1. Top App Bar -->
+  <header class="bg-[#FAF3E0] border-b-3 border-wood-brown px-6 py-4 sticky top-0 z-30 shadow-[0_4px_0_rgba(139,90,43,0.15)] flex flex-wrap items-center justify-between gap-4">
+    <!-- App Brand & Title -->
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gold-coin border-2 border-gold-dark shadow-[0_3px_0_#B87800] flex items-center justify-center text-wood-dark">
+        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 data-design-text-token="headline-md" class="font-headline text-headline-md text-wood-dark tracking-tight leading-none">
+            Talento Digital
+          </h1>
+          <span class="sparkle text-gold-dark text-base">✨</span>
+        </div>
+        <p data-design-text-token="label-sm" class="text-label-sm text-wood-brown font-bold tracking-wide mt-0.5">
+          Aventureiros &amp; Exploradores
+        </p>
+      </div>
+    </div>
+
+    <!-- Navigation Tab Switch: Exploradores (Alunos) vs Vitrine da Feirinha -->
+    <nav class="bg-[#EFE3C3] p-1.5 rounded-full border-2 border-wood-brown flex items-center shadow-inner gap-1">
+      <a href="../talento-digital-home/TalentoDigitalHome.html" class="bg-forest-green text-white font-label text-label-md px-5 py-2 rounded-full border border-forest-green-dark shadow-[0_2px_0_#1F756B] flex items-center gap-2 cursor-pointer transition-all">
+        <span class="material-symbols-outlined text-lg">groups</span>
+        <span data-design-text-token="label-md">Exploradores (Alunos)</span>
+      </a>
+      <a href="../feirinha-tesouro/FeirinhaTesouro.html" class="text-wood-dark hover:text-wood-brown font-label text-label-md px-5 py-2 rounded-full flex items-center gap-2 cursor-pointer transition-colors">
+        <span class="material-symbols-outlined text-lg">storefront</span>
+        <span data-design-text-token="label-md">Vitrine da Feirinha</span>
+      </a>
+    </nav>
+
+    <!-- Lock/Unlock Status Button ("Modo Consulta" with Padlock) -->
+    <div class="flex items-center gap-2">
+      <button type="button" class="bg-white hover:bg-stone-50 text-wood-dark border-2 border-wood-brown shadow-[0_3px_0_#5E3B1B] active:shadow-[0_1px_0_#5E3B1B] active:translate-y-[2px] transition-all px-4 py-2 rounded-full flex items-center gap-2 cursor-pointer group" title="Toque com senha do professor para desbloquear modo edição">
+        <div class="w-6 h-6 rounded-full bg-amber-100 border border-gold-coin flex items-center justify-center text-amber-800">
+          <span class="material-symbols-outlined text-sm">lock</span>
+        </div>
+        <div class="text-left leading-tight">
+          <span data-design-text-token="label-sm" class="text-label-sm font-bold text-wood-dark block">Modo Consulta</span>
+          <span class="text-[10px] text-wood-brown/80 font-bold">Professor: Toque p/ Liberar</span>
+        </div>
+      </button>
+
+      <!-- Quick sound or help indicator -->
+      <button type="button" aria-label="Som de aventura" class="w-10 h-10 rounded-full bg-light-surface-variant hover:bg-[#E7D6B0] text-wood-dark border-2 border-wood-brown shadow-[0_2px_0_#5E3B1B] flex items-center justify-center cursor-pointer">
+        <span class="material-symbols-outlined text-xl">volume_up</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Scrollable Body Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 flex flex-col gap-6">
+
+    <!-- 2. Hero Banner ("Cartão Mágico") -->
+    <section class="relative overflow-hidden bg-gradient-to-r from-[#2A9D8F] via-[#219EBC] to-[#2A9D8F] rounded-3xl border-4 border-wood-brown shadow-[0_8px_0_#5E3B1B] p-6 text-white">
+      <!-- Background Adventure & Sparkle Pattern -->
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_2px,transparent_2px)] [background-size:18px_18px] pointer-events-none"></div>
+      <div class="absolute -top-10 -right-10 w-44 h-44 bg-gold-coin/30 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <!-- Text and invitation -->
+        <div class="flex items-center gap-5 text-center md:text-left">
+          <!-- Animated NFC Magic Reader Disk -->
+          <div class="relative flex items-center justify-center flex-shrink-0">
+            <div class="absolute w-24 h-24 rounded-full bg-gold-coin/40 animate-wave"></div>
+            <div class="absolute w-20 h-20 rounded-full bg-white/20 animate-ping opacity-30"></div>
+            <div class="w-20 h-20 rounded-full bg-white text-forest-green border-4 border-gold-coin shadow-[0_0_20px_rgba(255,183,3,0.7)] flex items-center justify-center relative z-10">
+              <span class="material-symbols-outlined text-4xl animate-pulse text-gold-dark" style="font-variation-settings: &#39;FILL&#39; 1;">contactless</span>
+            </div>
+            <span class="absolute -top-2 -right-2 text-2xl sparkle">✨</span>
+          </div>
+
+          <div>
+            <div class="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-xs px-3 py-1 rounded-full text-gold-coin text-label-sm font-bold border border-white/20 mb-1.5">
+              <span>🌟 Cartão Mágico NFC</span>
+              <span>•</span>
+              <span>Detector de Tesouro Ativo</span>
+            </div>
+            <h2 data-design-text-token="headline-lg-mobile" class="font-headline text-headline-lg-mobile text-white tracking-tight drop-shadow-sm">
+              Aproxime seu Cartão Mágico NFC aqui para ver seu tesouro!
+            </h2>
+            <p data-design-text-token="body-md" class="text-white/90 text-body-md font-medium mt-1">
+              Encoste sua tag ou crachá de explorador no leitor do tablet para abrir seu baú de conquistas e talentos.
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Tap Simulator CTA (opens modal screen for preview) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" class="flex-shrink-0 bg-gold-coin hover:bg-[#F0A900] text-wood-dark border-3 border-gold-dark shadow-[0_5px_0_#B87800] active:shadow-[0_2px_0_#B87800] active:translate-y-[3px] transition-all px-6 py-3.5 rounded-full flex items-center gap-3 cursor-pointer group">
+          <span class="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">nfc</span>
+          <div class="text-left">
+            <span class="text-xs uppercase font-extrabold tracking-wider block text-wood-brown">Simular Toque</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg font-bold">Abrir Crachá Mágico</span>
+          </div>
+          <span class="material-symbols-outlined text-xl">arrow_forward</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 3. Search & Filter Bar -->
+    <section class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white/70 p-4 rounded-2xl border-2 border-wood-brown/50 shadow-xs">
+      <!-- Rounded Search Input -->
+      <div class="relative flex-1 max-w-md">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-wood-brown text-2xl pointer-events-none">
+          search
+        </span>
+        <input type="text" placeholder="Buscar explorador pelo nome ou código..." class="w-full bg-white border-2 border-wood-brown/60 focus:border-forest-green focus:ring-3 focus:ring-forest-green/20 rounded-full pl-12 pr-4 py-3 text-body-md text-wood-dark placeholder-wood-brown/60 font-medium transition-all shadow-inner outline-none">
+      </div>
+
+      <!-- Filter Chips for Classes -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+        <span class="text-label-sm font-bold text-wood-brown uppercase tracking-wider pl-1 hidden sm:inline">
+          Turmas:
+        </span>
+
+        <button type="button" data-component-id="chip-action" data-component-type="chip" data-component-variant="action" aria-pressed="true" class="bg-wood-brown text-white border-2 border-wood-dark shadow-[0_3px_0_#5E3B1B] px-5 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+          <span class="material-symbols-outlined text-base">check</span>
+          <span>Todos (28)</span>
+        </button>
+
+        <button type="button" data-component-id="chip-action" data-component-type="chip" data-component-variant="action" aria-pressed="false" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_3px_0_#C9B397] px-5 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 flex-shrink-0 cursor-pointer transition-all">
+          <span class="w-3 h-3 rounded-full bg-sky-blue"></span>
+          <span>Primários (12)</span>
+        </button>
+
+        <button type="button" data-component-id="chip-action" data-component-type="chip" data-component-variant="action" aria-pressed="false" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_3px_0_#C9B397] px-5 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 flex-shrink-0 cursor-pointer transition-all">
+          <span class="w-3 h-3 rounded-full bg-forest-green"></span>
+          <span>Juvenis (9)</span>
+        </button>
+
+        <button type="button" data-component-id="chip-action" data-component-type="chip" data-component-variant="action" aria-pressed="false" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_3px_0_#C9B397] px-5 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 flex-shrink-0 cursor-pointer transition-all">
+          <span class="w-3 h-3 rounded-full bg-[#E76F51]"></span>
+          <span>Jardim (7)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. Student Grid/List: Cards representing kids ("Crachás de Explorador") -->
+    <section>
+      <div class="flex items-center justify-between mb-4 px-1">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-wood-brown text-2xl">badge</span>
+          <h3 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark">
+            Crachás de Explorador
+          </h3>
+          <span class="bg-[#FFF4D6] text-wood-brown text-label-sm font-bold px-2.5 py-0.5 rounded-full border border-gold-coin">
+            28 Alunos Cadastrados
+          </span>
+        </div>
+
+        <div class="text-body-md text-wood-brown font-medium flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm text-forest-green">check_circle</span>
+          <span>NFC Reader Pronto</span>
+        </div>
+      </div>
+
+      <!-- Responsive Grid of Kid Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+        <!-- Card 1: Davi Lucca (Lion avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs" title="Tag NFC pareada">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <!-- Circular Avatar with Golden Badge Frame -->
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-amber-100 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <!-- Illustrated Animal: Leão Explorador -->
+              <div class="w-full h-full rounded-full bg-[#FFE5B4] flex items-center justify-center text-3xl">
+                🦁
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-gold-coin text-wood-dark text-xs font-black px-2 py-0.5 rounded-full border border-wood-brown shadow-xs">
+              ★ Lvl 4
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Davi Lucca Silva
+          </h4>
+          <span class="mt-1 bg-sky-blue/15 text-sky-blue-dark text-label-sm font-bold px-3 py-0.5 rounded-full border border-sky-blue/30 mb-4">
+            Turma: Primários
+          </span>
+
+          <!-- Balance Pill in Gold Talents -->
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              85 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 2: Sara Esther (Lamb avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-emerald-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#E8F5E9] flex items-center justify-center text-3xl">
+                🐑
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-forest-green text-white text-xs font-black px-2 py-0.5 rounded-full border border-forest-green-dark shadow-xs">
+              ★ Lvl 5
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Sara Esther Ramos
+          </h4>
+          <span class="mt-1 bg-sky-blue/15 text-sky-blue-dark text-label-sm font-bold px-3 py-0.5 rounded-full border border-sky-blue/30 mb-4">
+            Turma: Primários
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              92 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 3: Samuel Levi (Eagle avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-sky-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#E0F2FE] flex items-center justify-center text-3xl">
+                🦅
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-sky-blue text-white text-xs font-black px-2 py-0.5 rounded-full border border-sky-blue-dark shadow-xs">
+              ★ Lvl 3
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Samuel Levi Santos
+          </h4>
+          <span class="mt-1 bg-forest-green/15 text-forest-green-dark text-label-sm font-bold px-3 py-0.5 rounded-full border border-forest-green/30 mb-4">
+            Turma: Juvenis
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              64 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 4: Benício Cavalcante (Bear avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-amber-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#F5E6CA] flex items-center justify-center text-3xl">
+                🐻
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-gold-coin text-wood-dark text-xs font-black px-2 py-0.5 rounded-full border border-wood-brown shadow-xs">
+              ★ Lvl 4
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Benício Cavalcante
+          </h4>
+          <span class="mt-1 bg-sky-blue/15 text-sky-blue-dark text-label-sm font-bold px-3 py-0.5 rounded-full border border-sky-blue/30 mb-4">
+            Turma: Primários
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              85 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 5: Rebeca Lima (Panda avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-stone-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#F3F4F6] flex items-center justify-center text-3xl">
+                🐼
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-gold-coin text-wood-dark text-xs font-black px-2 py-0.5 rounded-full border border-wood-brown shadow-xs">
+              ★ Lvl 2
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Rebeca Lima Costa
+          </h4>
+          <span class="mt-1 bg-rose-100 text-rose-800 text-label-sm font-bold px-3 py-0.5 rounded-full border border-rose-300 mb-4">
+            Turma: Jardim
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              38 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 6: Lucas Gabriel (Wolf avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-slate-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#E2E8F0] flex items-center justify-center text-3xl">
+                🐺
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-forest-green text-white text-xs font-black px-2 py-0.5 rounded-full border border-forest-green-dark shadow-xs">
+              ★ Lvl 3
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Lucas Gabriel Prado
+          </h4>
+          <span class="mt-1 bg-forest-green/15 text-forest-green-dark text-label-sm font-bold px-3 py-0.5 rounded-full border border-forest-green/30 mb-4">
+            Turma: Juvenis
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              55 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 7: Melissa Ribeiro (Koala avatar) -->
+        <a href="../cracha-magico-modal/CrachaMagicoModal.html" data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] hover:shadow-[0_8px_0_#5E3B1B] hover:-translate-y-1 transition-all p-5 flex flex-col items-center text-center cursor-pointer relative group">
+          <div class="absolute top-3 right-3 bg-amber-50 text-gold-dark border border-gold-coin/60 rounded-full p-1 shadow-xs">
+            <span class="material-symbols-outlined text-base">nfc</span>
+          </div>
+
+          <div class="relative mb-3 mt-1">
+            <div class="w-20 h-20 rounded-full bg-rose-50 border-4 border-gold-coin p-1.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+              <div class="w-full h-full rounded-full bg-[#FFE4E6] flex items-center justify-center text-3xl">
+                🐨
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 bg-gold-coin text-wood-dark text-xs font-black px-2 py-0.5 rounded-full border border-wood-brown shadow-xs">
+              ★ Lvl 2
+            </span>
+          </div>
+
+          <h4 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark group-hover:text-forest-green transition-colors">
+            Melissa Ribeiro
+          </h4>
+          <span class="mt-1 bg-rose-100 text-rose-800 text-label-sm font-bold px-3 py-0.5 rounded-full border border-rose-300 mb-4">
+            Turma: Jardim
+          </span>
+
+          <div class="w-full bg-[#FFF9E6] border-2 border-gold-coin rounded-full py-2 px-3 flex items-center justify-center gap-2 shadow-xs group-hover:bg-gold-coin/20 transition-colors">
+            <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+            <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark tracking-wide">
+              42 Talentos
+            </span>
+          </div>
+        </a>
+
+        <!-- Card 8: Novo Explorador (Add student prompt) -->
+        <div class="bg-[#FAF3E0] rounded-2xl border-3 border-dashed border-wood-brown/60 p-5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#F3EAD3] transition-colors group min-h-[220px]">
+          <div class="w-16 h-16 rounded-full bg-white border-2 border-wood-brown flex items-center justify-center text-wood-brown group-hover:scale-110 transition-transform shadow-xs mb-2">
+            <span class="material-symbols-outlined text-3xl">person_add</span>
+          </div>
+          <h4 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark">
+            Novo Explorador
+          </h4>
+          <p data-design-text-token="body-md" class="text-body-md text-wood-brown/80 mt-1 max-w-[180px]">
+            Cadastrar aluno e associar nova tag NFC
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Floating Adventure Status Bar -->
+  <footer class="bg-wood-brown text-[#FAF3E0] px-6 py-3 border-t-2 border-wood-dark flex flex-wrap items-center justify-between text-xs font-bold gap-3">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+      <span class="tracking-wide">Leitor NFC Ativo • Antena Pronta (13.56 MHz)</span>
+    </div>
+    <div class="flex items-center gap-6">
+      <span>Total de Talentos Distribuídos: <strong class="text-gold-coin">1.420 🪙</strong></span>
+      <span>Feirinha Aberta: <strong class="text-emerald-300">Sim</strong></span>
+    </div>
+  </footer>
+
+
+
+</body></html>

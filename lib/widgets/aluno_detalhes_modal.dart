@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../database/models.dart';
 import '../database/talentos_repository.dart';
+import '../services/image_helper_service.dart';
+import '../services/pin_security_service.dart';
+import '../theme/adventure_theme.dart';
+import 'pin_auth_dialog.dart';
 
 class AlunoDetalhesModal extends StatefulWidget {
   final AlunoModel alunoInicial;
@@ -21,14 +24,18 @@ class AlunoDetalhesModal extends StatefulWidget {
     required TalentosRepository repository,
     required VoidCallback onDataChanged,
   }) {
-    return showModalBottomSheet(
+    return showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AlunoDetalhesModal(
-        alunoInicial: aluno,
-        repository: repository,
-        onDataChanged: onDataChanged,
+      barrierDismissible: true,
+      barrierColor: const Color(0xFF2D261E).withValues(alpha: 0.65),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: AlunoDetalhesModal(
+          alunoInicial: aluno,
+          repository: repository,
+          onDataChanged: onDataChanged,
+        ),
       ),
     );
   }
@@ -49,74 +56,52 @@ class _AlunoDetalhesModalState extends State<AlunoDetalhesModal> {
     _aluno = widget.alunoInicial;
   }
 
-  Future<void> _adicionarTalentos(int quantidade, String motivo) async {
+  Future<void> _adicionarTalentos(int qtd, String motivo) async {
     setState(() => _loading = true);
     try {
       final novoSaldo = await widget.repository.adicionarTalentos(
         alunoUid: _aluno.uid,
-        quantidade: quantidade,
+        quantidade: qtd,
         motivo: motivo,
+        operador: 'Professor',
       );
-
-      HapticFeedback.mediumImpact();
-      SystemSound.play(SystemSoundType.click);
-
-      if (mounted) {
-        setState(() {
-          _aluno = AlunoModel(
-            uid: _aluno.uid,
-            nome: _aluno.nome,
-            turma: _aluno.turma,
-            saldoTalentos: novoSaldo,
-            ativo: _aluno.ativo,
-            updatedAt: DateTime.now().toIso8601String(),
-          );
-          _loading = false;
-        });
-
-        widget.onDataChanged();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              quantidade >= 0
-                  ? '+$quantidade Talentos: $motivo'
-                  : '$quantidade Talentos: $motivo',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: quantidade >= 0 ? Colors.green.shade800 : Colors.red.shade800,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        if (_exibindoHistorico) {
-          _carregarHistorico();
-        }
-      }
+      setState(() {
+        _aluno = _aluno.copyWith(saldoTalentos: novoSaldo);
+      });
+      widget.onDataChanged();
+      if (_exibindoHistorico) _carregarHistorico();
     } catch (e) {
       if (mounted) {
-        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Erro: $e'),
+            backgroundColor: AdventureTheme.errorCoral,
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _abrirAjusteLivre() async {
-    final controllerQtd = TextEditingController();
-    final controllerMotivo = TextEditingController(text: 'Ajuste manual');
+    final controller = TextEditingController();
+    final motivoCtrl = TextEditingController(text: 'Bonificação Especial');
     bool ehAdicao = true;
 
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Ajuste Livre de Saldo'),
+        builder: (ctx, setDlg) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AdventureTheme.woodBrown, width: 2.5),
+          ),
+          backgroundColor: AdventureTheme.surface,
+          title: Text(
+            'Ajuste Livre de Talentos',
+            style: AdventureTheme.titleFredoka.copyWith(fontSize: 18),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -126,33 +111,37 @@ class _AlunoDetalhesModalState extends State<AlunoDetalhesModal> {
                   ChoiceChip(
                     label: const Text('+ Adicionar'),
                     selected: ehAdicao,
-                    onSelected: (val) => setDialogState(() => ehAdicao = true),
+                    selectedColor: AdventureTheme.forestGreen,
+                    onSelected: (val) => setDlg(() => ehAdicao = true),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label: const Text('- Subtrair'),
+                    label: const Text('- Remover'),
                     selected: !ehAdicao,
-                    onSelected: (val) => setDialogState(() => ehAdicao = false),
+                    selectedColor: AdventureTheme.errorCoral,
+                    onSelected: (val) => setDlg(() => ehAdicao = false),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextField(
-                controller: controllerQtd,
+                controller: controller,
                 keyboardType: TextInputType.number,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Quantidade de Talentos',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.monetization_on),
+                  hintText: 'Ex: 10',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.monetization_on, color: AdventureTheme.goldCoin),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: controllerMotivo,
-                decoration: const InputDecoration(
-                  labelText: 'Motivo do Ajuste',
-                  border: OutlineInputBorder(),
+                controller: motivoCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Motivo',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.description),
                 ),
               ),
             ],
@@ -160,18 +149,22 @@ class _AlunoDetalhesModalState extends State<AlunoDetalhesModal> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: const Text('Cancelar', style: TextStyle(color: AdventureTheme.woodDark)),
             ),
-            FilledButton(
+            AdventureButton(
+              backgroundColor: ehAdicao ? AdventureTheme.forestGreen : AdventureTheme.errorCoral,
+              borderColor: ehAdicao ? AdventureTheme.forestGreenDark : const Color(0xFFB24B32),
               onPressed: () {
-                final qtd = int.tryParse(controllerQtd.text.trim()) ?? 0;
+                final qtd = int.tryParse(controller.text.trim()) ?? 0;
                 if (qtd > 0) {
                   Navigator.pop(ctx);
-                  final valorFinal = ehAdicao ? qtd : -qtd;
-                  _adicionarTalentos(valorFinal, controllerMotivo.text.trim());
+                  _adicionarTalentos(
+                    ehAdicao ? qtd : -qtd,
+                    motivoCtrl.text.trim().isEmpty ? 'Ajuste manual' : motivoCtrl.text.trim(),
+                  );
                 }
               },
-              child: const Text('Confirmar'),
+              child: const Text('Confirmar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -180,122 +173,97 @@ class _AlunoDetalhesModalState extends State<AlunoDetalhesModal> {
   }
 
   Future<void> _dialogVincularOuTrocarTag({required bool ehSubstituicao}) async {
+    final autorizado = await PinAuthDialog.solicitarPin(
+      context,
+      titulo: ehSubstituicao ? 'Substituir Tag Perdida' : 'Cadastrar Tag NFC',
+      subtitulo: 'Digite o PIN para alterar a tag de ${_aluno.nome}',
+    );
+    if (!autorizado || !mounted) return;
+
     final controllerTag = TextEditingController();
-
-    bool listenerTemporario(KeyEvent event) {
-      if (event is! KeyDownEvent) return false;
-      if (event.logicalKey == LogicalKeyboardKey.enter ||
-          event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-        final code = controllerTag.text.trim();
-        if (code.isNotEmpty && RegExp(r'^[0-9a-fA-F]{8,20}$').hasMatch(code)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    HardwareKeyboard.instance.addHandler(listenerTemporario);
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                ehSubstituicao ? Icons.sync_problem : Icons.nfc,
-                color: ehSubstituicao ? Colors.orangeAccent : Colors.amber,
-              ),
-              const SizedBox(width: 10),
-              Text(ehSubstituicao ? 'Substituir Tag Perdida' : 'Cadastrar Tag NFC'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                ehSubstituicao
-                    ? 'Aproxime o NOVO chaveiro NFC do leitor USB (ou digite o UID abaixo). O saldo e o histórico de ${_aluno.nome} serão migrados para a nova tag.'
-                    : 'Aproxime o chaveiro NFC do leitor USB para vincular a ${_aluno.nome}:',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controllerTag,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'UID da Nova Tag',
-                  hintText: 'Ex: 044EE8A8892681',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.credit_card),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AdventureTheme.woodBrown, width: 2.5),
+        ),
+        backgroundColor: AdventureTheme.surface,
+        title: Text(
+          ehSubstituicao ? 'Substituir Tag Perdida' : 'Cadastrar Tag NFC',
+          style: AdventureTheme.titleFredoka.copyWith(fontSize: 18),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              ehSubstituicao
+                  ? 'Aproxime a NOVA tag do leitor ou digite o UID. O saldo de ${_aluno.nome} será preservado.'
+                  : 'Aproxime a tag NFC para vincular a ${_aluno.nome}:',
+              style: AdventureTheme.bodyNunito.copyWith(fontSize: 13, color: AdventureTheme.textMuted),
             ),
-            FilledButton(
-              onPressed: () async {
-                final novaTag = controllerTag.text.trim().toUpperCase();
-                if (novaTag.isEmpty) return;
-
-                // Verifica se a tag já pertence a outro aluno
-                final existente = await widget.repository.buscarAlunoPorUid(novaTag);
-                if (existente != null) {
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(
-                        content: Text('Esta tag já está cadastrada para o aluno: ${existente.nome}!'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                  return;
-                }
-
-                try {
-                  await widget.repository.vincularTagAoAluno(
-                    uidAntigo: _aluno.uid,
-                    novoUidTag: novaTag,
-                  );
-
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                  }
-
-                  final alunoAtualizado = await widget.repository.buscarAlunoPorUid(novaTag);
-                  if (mounted && alunoAtualizado != null) {
-                    setState(() {
-                      _aluno = alunoAtualizado;
-                    });
-                    widget.onDataChanged();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(ehSubstituicao ? 'Tag substituída com sucesso!' : 'Tag vinculada com sucesso!'),
-                        backgroundColor: Colors.green.shade800,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Erro ao vincular: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              },
-              child: const Text('Confirmar Vínculo'),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controllerTag,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'UID da Nova Tag',
+                hintText: 'Ex: 041693AB8A2681',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.credit_card),
+              ),
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: AdventureTheme.woodDark)),
+          ),
+          AdventureButton(
+            onPressed: () async {
+              final novaTag = controllerTag.text.trim().toUpperCase();
+              if (novaTag.isEmpty) return;
+
+              final existente = await widget.repository.buscarAlunoPorUid(novaTag);
+              if (existente != null && existente.uid != _aluno.uid) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('Tag já pertence a ${existente.nome}!'),
+                      backgroundColor: AdventureTheme.errorCoral,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              await widget.repository.vincularTagAoAluno(
+                uidAntigo: _aluno.uid,
+                novoUidTag: novaTag,
+              );
+
+              final recarregado = await widget.repository.buscarAlunoPorUid(novaTag);
+              if (recarregado != null && mounted) {
+                setState(() => _aluno = recarregado);
+                widget.onDataChanged();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tag vinculada com sucesso!'),
+                    backgroundColor: AdventureTheme.forestGreen,
+                  ),
+                );
+              }
+            },
+            child: const Text('Salvar Tag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
-
-    HardwareKeyboard.instance.removeHandler(listenerTemporario);
   }
 
   Future<void> _carregarHistorico() async {
@@ -310,278 +278,459 @@ class _AlunoDetalhesModalState extends State<AlunoDetalhesModal> {
 
   @override
   Widget build(BuildContext context) {
+    final nivel = (_aluno.saldoTalentos ~/ 20) + 1;
     final isManual = _aluno.uid.startsWith('MANUAL_');
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        top: 16,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Handle do modal
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade700,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        // 1. Container do Crachá
+        Container(
+          constraints: const BoxConstraints(maxWidth: 480),
+          decoration: BoxDecoration(
+            color: AdventureTheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AdventureTheme.woodBrown, width: 3.5),
+            boxShadow: const [
+              BoxShadow(
+                color: AdventureTheme.woodDark,
+                offset: Offset(0, 10),
+                blurRadius: 0,
               ),
-            ),
-
-            // Cabeçalho do Aluno
-            Row(
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.amber.shade700,
-                  child: Text(
-                    _aluno.nome.isNotEmpty ? _aluno.nome[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _aluno.nome,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                // Linha de Cabeçalho: Status NFC + Fechar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8F3DC),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AdventureTheme.forestGreenDark.withValues(alpha: 0.3)),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          if (_aluno.turma != null && _aluno.turma!.isNotEmpty) ...[
-                            Text(
-                              _aluno.turma!,
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
-                            ),
-                            const Text(' • ', style: TextStyle(color: Colors.grey)),
-                          ],
-                          Flexible(
-                            child: Text(
-                              isManual ? 'Sem Tag NFC' : 'Tag: ${_aluno.uid}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontFamily: isManual ? null : 'monospace',
-                                color: isManual ? Colors.orangeAccent : Colors.grey.shade400,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        children: const [
+                          Icon(Icons.check_circle, size: 14, color: AdventureTheme.forestGreenDark),
+                          SizedBox(width: 4),
+                          Text(
+                            'CRACHÁ MÁGICO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: AdventureTheme.forestGreenDark,
+                              letterSpacing: 0.8,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      // Botões contextuais de gerenciamento de tag
-                      if (isManual)
-                        InkWell(
-                          borderRadius: BorderRadius.circular(6),
-                          onTap: () => _dialogVincularOuTrocarTag(ehSubstituicao: false),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.add_link, size: 16, color: Colors.amber),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Cadastrar Tag NFC',
-                                  style: TextStyle(fontSize: 12, color: Colors.amber.shade300, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        InkWell(
-                          borderRadius: BorderRadius.circular(6),
-                          onTap: () => _dialogVincularOuTrocarTag(ehSubstituicao: true),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.swap_horiz, size: 16, color: Colors.orangeAccent),
-                                const SizedBox(width: 4),
-                                const Text(
-                                  'Perdi a tag (Substituir)',
-                                  style: TextStyle(fontSize: 12, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AdventureTheme.woodDark, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const Divider(height: 32),
+                const SizedBox(height: 8),
 
-            // Destaque de Saldo de Talentos
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                children: [
-                  const Text('SALDO DISPONÍVEL', style: TextStyle(fontSize: 12, letterSpacing: 1.5, color: Colors.grey)),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 40),
-                      const SizedBox(width: 10),
-                      Text(
-                        '${_aluno.saldoTalentos}',
+                // 2. Avatar Circular 120x120 com borda dourada e Nível
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    ImageHelperService.buildAvatarWidget(
+                      fotoBase64: _aluno.fotoBase64,
+                      avatarId: _aluno.avatarId,
+                      nome: _aluno.nome,
+                      size: 110,
+                      borderWidth: 4,
+                      borderColor: AdventureTheme.goldCoin,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AdventureTheme.goldCoin,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AdventureTheme.woodBrown, width: 1.8),
+                        boxShadow: const [
+                          BoxShadow(color: AdventureTheme.woodDark, offset: Offset(0, 2), blurRadius: 0),
+                        ],
+                      ),
+                      child: Text(
+                        '⭐ Lvl $nivel',
                         style: const TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: AdventureTheme.woodDark,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Nome Completo
+                Text(
+                  _aluno.nome,
+                  textAlign: TextAlign.center,
+                  style: AdventureTheme.titleFredoka.copyWith(fontSize: 22),
+                ),
+                const SizedBox(height: 6),
+
+                // Chips de Turma e ID
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (_aluno.turma != null && _aluno.turma!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AdventureTheme.skyBlue.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AdventureTheme.skyBlueDark.withValues(alpha: 0.4)),
+                        ),
+                        child: Text(
+                          'Turma: ${_aluno.turma}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdventureTheme.skyBlueDark),
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AdventureTheme.woodBrown.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AdventureTheme.woodBrown.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        isManual ? 'Sem Tag NFC' : 'Tag: ${_aluno.tagAtualUid ?? _aluno.uid}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdventureTheme.woodDark),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Gestão de Tag no Modo Professor
+                if (PinSecurityService.isModoProfessorAtivo.value) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: isManual ? AdventureTheme.forestGreen : AdventureTheme.woodBrown,
+                    ),
+                    icon: Icon(isManual ? Icons.add_link : Icons.swap_horiz, size: 16),
+                    label: Text(
+                      isManual ? 'Cadastrar Tag NFC' : 'Substituir Tag Perdida',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () => _dialogVincularOuTrocarTag(ehSubstituicao: !isManual),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                const SizedBox(height: 14),
 
-            // Botões de Ação Rápida
-            const Text(
-              'Lançamento Rápido de Talentos',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-            ),
-            const SizedBox(height: 10),
-
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildActionChip(
-                  label: '+1 Presença',
-                  color: Colors.blueAccent,
-                  onTap: _loading ? null : () => _adicionarTalentos(1, 'Presença na Escola Sabatina'),
-                ),
-                _buildActionChip(
-                  label: '+2 Lição Feita',
-                  color: Colors.tealAccent,
-                  onTap: _loading ? null : () => _adicionarTalentos(2, 'Lição da Semana Completa'),
-                ),
-                _buildActionChip(
-                  label: '+5 Verso Bíblico',
-                  color: Colors.amberAccent,
-                  onTap: _loading ? null : () => _adicionarTalentos(5, 'Versículo Decorado'),
-                ),
-                _buildActionChip(
-                  label: '+3 Ação Especial',
-                  color: Colors.purpleAccent,
-                  onTap: _loading ? null : () => _adicionarTalentos(3, 'Participação / Ação Especial'),
-                ),
-                ActionChip(
-                  avatar: const Icon(Icons.tune, size: 16),
-                  label: const Text('Ajuste Livre (+/-)'),
-                  onPressed: _loading ? null : _abrirAjusteLivre,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Botão de Histórico
-            OutlinedButton.icon(
-              icon: Icon(_exibindoHistorico ? Icons.keyboard_arrow_up : Icons.history),
-              label: Text(_exibindoHistorico ? 'Ocultar Histórico' : 'Ver Últimas Movimentações'),
-              onPressed: () {
-                if (_exibindoHistorico) {
-                  setState(() => _exibindoHistorico = false);
-                } else {
-                  _carregarHistorico();
-                }
-              },
-            ),
-
-            if (_exibindoHistorico) ...[
-              const SizedBox(height: 12),
-              if (_historico == null)
-                const Center(child: CircularProgressIndicator())
-              else if (_historico!.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Center(child: Text('Nenhuma movimentação registrada.')),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _historico!.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (ctx, i) {
-                    final item = _historico![i];
-                    final isEntrada = item.tipo == 'ENTRADA';
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        isEntrada ? Icons.arrow_upward : Icons.arrow_downward,
-                        color: isEntrada ? Colors.greenAccent : Colors.redAccent,
-                        size: 20,
+                // 3. Baú do Tesouro (Saldo de Talentos)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9E6),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AdventureTheme.goldCoin, width: 2.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AdventureTheme.goldCoin,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AdventureTheme.goldDark, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: AdventureTheme.goldDark, offset: Offset(0, 3), blurRadius: 0),
+                          ],
+                        ),
+                        child: const Icon(Icons.monetization_on, color: AdventureTheme.woodDark, size: 30),
                       ),
-                      title: Text(item.motivo, style: const TextStyle(fontSize: 14)),
-                      subtitle: Text(
-                        '${item.createdAt.substring(0, 10)} • Por ${item.operador}',
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      trailing: Text(
-                        '${isEntrada ? "+" : "-"}${item.quantidade}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isEntrada ? Colors.greenAccent : Colors.redAccent,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'TESOURO NO BAÚ',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                                color: AdventureTheme.woodBrown,
+                              ),
+                            ),
+                            Text(
+                              '${_aluno.saldoTalentos} Talentos',
+                              style: AdventureTheme.titleFredoka.copyWith(fontSize: 24, color: AdventureTheme.woodDark),
+                            ),
+                          ],
                         ),
                       ),
-                    );
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 4. Painel do Professor (quando desbloqueado)
+                if (PinSecurityService.isModoProfessorAtivo.value) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AdventureTheme.woodBrown.withValues(alpha: 0.4), width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.military_tech, color: AdventureTheme.forestGreen, size: 18),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Painel do Professor • Recompensas',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AdventureTheme.woodDark),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AdventureButton(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                backgroundColor: AdventureTheme.forestGreen,
+                                borderColor: AdventureTheme.forestGreenDark,
+                                onPressed: _loading ? null : () => _adicionarTalentos(1, 'Presença na Escola Sabatina'),
+                                child: Column(
+                                  children: const [
+                                    Text('Presença', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                    Text('+1 🪙', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: AdventureButton(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                backgroundColor: AdventureTheme.skyBlue,
+                                borderColor: AdventureTheme.skyBlueDark,
+                                onPressed: _loading ? null : () => _adicionarTalentos(2, 'Bíblia / Lição'),
+                                child: Column(
+                                  children: const [
+                                    Text('Bíblia', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                    Text('+2 🪙', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: AdventureButton(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                backgroundColor: AdventureTheme.goldCoin,
+                                borderColor: AdventureTheme.goldDark,
+                                onPressed: _loading ? null : () => _adicionarTalentos(5, 'Lição Completa'),
+                                child: Column(
+                                  children: const [
+                                    Text('Lição', style: TextStyle(fontSize: 10, color: AdventureTheme.woodDark)),
+                                    Text('+5 🪙', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AdventureTheme.woodDark)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: AdventureButton(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                backgroundColor: AdventureTheme.errorCoral,
+                                borderColor: const Color(0xFFB24B32),
+                                onPressed: _loading ? null : () => _adicionarTalentos(10, 'Missão / Especial'),
+                                child: Column(
+                                  children: const [
+                                    Text('Missão', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                    Text('+10 🪙', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AdventureTheme.woodBrown, style: BorderStyle.solid),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.tune, size: 16, color: AdventureTheme.woodDark),
+                          label: const Text(
+                            'Valor Livre (+/-) ou Bonificação',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdventureTheme.woodDark),
+                          ),
+                          onPressed: _loading ? null : _abrirAjusteLivre,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                // 5. Histórico de Conquistas
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AdventureTheme.woodDark,
+                    side: const BorderSide(color: AdventureTheme.woodBrown),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: Icon(_exibindoHistorico ? Icons.keyboard_arrow_up : Icons.history_edu, size: 18),
+                  label: Text(
+                    _exibindoHistorico ? 'Ocultar Extrato' : 'Ver Últimas Conquistas',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: () {
+                    if (_exibindoHistorico) {
+                      setState(() => _exibindoHistorico = false);
+                    } else {
+                      _carregarHistorico();
+                    }
                   },
                 ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildActionChip({
-    required String label,
-    required Color color,
-    required VoidCallback? onTap,
-  }) {
-    return ActionChip(
-      backgroundColor: color.withValues(alpha: 0.15),
-      side: BorderSide(color: color.withValues(alpha: 0.5)),
-      label: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold),
-      ),
-      onPressed: onTap,
+                if (_exibindoHistorico) ...[
+                  const SizedBox(height: 8),
+                  if (_historico == null)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(color: AdventureTheme.forestGreen),
+                    )
+                  else if (_historico!.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('Nenhuma movimentação ainda.', style: TextStyle(fontSize: 12, color: AdventureTheme.textMuted)),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 180),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _historico!.length,
+                        itemBuilder: (ctx, i) {
+                          final t = _historico![i];
+                          final ehEntrada = t.tipo == 'ENTRADA';
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AdventureTheme.woodBrown.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  ehEntrada ? Icons.add_circle : Icons.remove_circle,
+                                  size: 18,
+                                  color: ehEntrada ? AdventureTheme.forestGreen : AdventureTheme.errorCoral,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    t.motivo,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AdventureTheme.textDark),
+                                  ),
+                                ),
+                                Text(
+                                  '${ehEntrada ? '+' : '-'}${t.quantidade} 🪙',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                    color: ehEntrada ? AdventureTheme.forestGreen : AdventureTheme.errorCoral,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
+        // Presilha Virtual do Crachá no topo
+        Positioned(
+          top: -34,
+          child: Column(
+            children: [
+              // Fita verde floresta com listras douradas
+              Container(
+                width: 64,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AdventureTheme.forestGreen,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                  border: Border.all(color: AdventureTheme.forestGreenDark, width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: AdventureTheme.woodDark, offset: Offset(0, 2), blurRadius: 0),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(width: 4, height: double.infinity, color: AdventureTheme.goldCoin),
+                    Container(width: 4, height: double.infinity, color: AdventureTheme.goldCoin),
+                  ],
+                ),
+              ),
+              // Clipe metálico dourado
+              Container(
+                width: 44,
+                height: 12,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFE898), AdventureTheme.goldCoin],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AdventureTheme.woodBrown, width: 1.5),
+                ),
+              ),
+              // Furo do crachá
+              Container(
+                width: 24,
+                height: 4,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: AdventureTheme.woodDark.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

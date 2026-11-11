@@ -1,0 +1,563 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talento Digital — Vitrine da Feirinha PDV</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'forest-green': '#2A9D8F',
+        'sky-blue': '#219EBC',
+        'gold-coin': '#FFB703',
+        'wood-brown': '#8B5A2B',
+        'gold-dark': '#D48B00',
+        'forest-green-dark': '#1F756B',
+        'wood-dark': '#5E3B1B',
+        'sky-blue-dark': '#166B80',
+        'success': '#2A9D8F',
+        'warning': '#FFB703',
+        'error': '#E76F51',
+        'light-primary': '#2A9D8F',
+        'light-on-primary': '#262626',
+        'light-secondary': '#FFB703',
+        'light-on-secondary': '#3A2600',
+        'light-tertiary': '#219EBC',
+        'light-on-tertiary': '#2B2B2B',
+        'light-surface': '#FAF3E0',
+        'light-on-surface': '#2D261E',
+        'light-surface-variant': '#F3EAD3',
+        'light-on-surface-variant': '#6B5E50',
+        'light-outline': '#8B5A2B',
+        'dark-primary': '#48CAE4',
+        'dark-on-primary': '#03045E',
+        'dark-secondary': '#FFD166',
+        'dark-on-secondary': '#3A2600',
+        'dark-tertiary': '#52B788',
+        'dark-on-tertiary': '#081C15',
+        'dark-surface': '#221C16',
+        'dark-on-surface': '#F7EDE2',
+        'dark-surface-variant': '#322921',
+        'dark-on-surface-variant': '#C4B5A5',
+        'dark-outline': '#D4A373',
+      },
+      borderRadius: {
+        'sm': '8px',
+        'md': '14px',
+        'lg': '18px',
+        'xl': '24px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '40px',
+        'page-margin': '20px',
+      },
+      fontFamily: {
+        'display': ['"Fredoka"', 'sans-serif'],
+        'headline': ['"Fredoka"', 'sans-serif'],
+        'title': ['"Fredoka"', 'sans-serif'],
+        'body': ['"Nunito"', 'sans-serif'],
+        'label': ['"Fredoka"', 'sans-serif'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-lg-mobile': ['30px', { lineHeight: '38px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-lg': ['32px', { lineHeight: '40px', fontWeight: '700' }],
+        'headline-lg-mobile': ['24px', { lineHeight: '32px', fontWeight: '700' }],
+        'headline-md': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+        'title-lg': ['20px', { lineHeight: '28px', fontWeight: '600' }],
+        'title-md': ['18px', { lineHeight: '26px', fontWeight: '700' }],
+        'body-lg': ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        'body-md': ['14px', { lineHeight: '20px', fontWeight: '500' }],
+        'label-lg': ['16px', { lineHeight: '22px', letterSpacing: '0.2px', fontWeight: '600' }],
+        'label-md': ['14px', { lineHeight: '18px', fontWeight: '600' }],
+        'label-sm': ['12px', { lineHeight: '16px', fontWeight: '700' }],
+      },
+      transitionDuration: {
+        'tactile-press': '100ms',
+        'modal-spring': '250ms',
+        'coin-pulse': '1200ms',
+      },
+      transitionDelay: {
+        'tactile-press': '0ms',
+        'modal-spring': '0ms',
+        'coin-pulse': '0ms',
+      },
+      transitionTimingFunction: {
+        'tactile-press': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'modal-spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'coin-pulse': 'ease-in-out',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Nunito:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+</head>
+<body class="bg-light-surface min-h-[1024px] text-light-on-surface font-body flex flex-col antialiased selection:bg-gold-coin selection:text-wood-dark" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+  <!-- 1. Top App Bar (Consistent with Screen 1) -->
+  <header class="bg-[#FAF3E0] border-b-3 border-wood-brown px-6 py-4 sticky top-0 z-30 shadow-[0_4px_0_rgba(139,90,43,0.15)] flex flex-wrap items-center justify-between gap-4">
+    <!-- App Brand & Title -->
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gold-coin border-2 border-gold-dark shadow-[0_3px_0_#B87800] flex items-center justify-center text-wood-dark">
+        <span class="material-symbols-outlined text-3xl" style="font-variation-settings: &#39;FILL&#39; 1;">storefront</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 data-design-text-token="headline-md" class="font-headline text-headline-md text-wood-dark tracking-tight leading-none">
+            Vitrine da Feirinha
+          </h1>
+          <span class="text-gold-dark text-base">🎁</span>
+        </div>
+        <p data-design-text-token="label-sm" class="text-label-sm text-wood-brown font-bold tracking-wide mt-0.5">
+          Troque seus Talentos por Tesouros Incríveis!
+        </p>
+      </div>
+    </div>
+
+    <!-- Navigation Tab Switch: Exploradores (Alunos) vs Vitrine da Feirinha -->
+    <nav class="bg-[#EFE3C3] p-1.5 rounded-full border-2 border-wood-brown flex items-center shadow-inner gap-1">
+      <a href="../talento-digital-home/TalentoDigitalHome.html" class="text-wood-dark hover:text-wood-brown font-label text-label-md px-5 py-2 rounded-full flex items-center gap-2 cursor-pointer transition-colors">
+        <span class="material-symbols-outlined text-lg">groups</span>
+        <span data-design-text-token="label-md">Exploradores (Alunos)</span>
+      </a>
+      <a href="../feirinha-tesouro/FeirinhaTesouro.html" class="bg-forest-green text-white font-label text-label-md px-5 py-2 rounded-full border border-forest-green-dark shadow-[0_2px_0_#1F756B] flex items-center gap-2 cursor-pointer transition-all">
+        <span class="material-symbols-outlined text-lg">storefront</span>
+        <span data-design-text-token="label-md">Vitrine da Feirinha</span>
+      </a>
+    </nav>
+
+    <!-- Student Quick Status & Mode Indicator -->
+    <div class="flex items-center gap-3">
+      <div class="bg-white border-2 border-wood-brown rounded-full py-1.5 px-4 flex items-center gap-2.5 shadow-xs">
+        <div class="w-8 h-8 rounded-full bg-amber-100 border border-gold-coin flex items-center justify-center text-lg">
+          🐻
+        </div>
+        <div class="text-left leading-none">
+          <span class="text-[11px] text-wood-brown font-bold block">Explorador Atual</span>
+          <span class="font-headline text-xs text-wood-dark font-bold">Benício • 85 🪙</span>
+        </div>
+      </div>
+
+      <button type="button" class="bg-[#FAF3E0] hover:bg-[#F3EAD3] text-wood-dark border-2 border-wood-brown shadow-[0_3px_0_#5E3B1B] active:translate-y-[2px] transition-all px-3.5 py-2 rounded-full flex items-center gap-2 cursor-pointer">
+        <span class="material-symbols-outlined text-sm text-forest-green">lock_open</span>
+        <span class="text-label-sm font-bold">Modo PDV</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Area: Split Screen (Left: Product Grid | Right: Checkout Cart) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 items-start">
+
+    <!-- LEFT / MAIN AREA: Responsive Grid of Store Items -->
+    <section class="flex-1 w-full flex flex-col gap-5">
+
+      <!-- Category Filter Pills for Store Items -->
+      <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+        <div class="flex items-center gap-2">
+          <button type="button" class="bg-wood-brown text-white border-2 border-wood-dark shadow-[0_3px_0_#5E3B1B] px-4 py-1.5 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+            <span>✨ Todos (18)</span>
+          </button>
+          <button type="button" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_2px_0_#D4B89A] px-4 py-1.5 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+            <span>🧸 Brinquedos</span>
+          </button>
+          <button type="button" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_2px_0_#D4B89A] px-4 py-1.5 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+            <span>🎨 Material Escolar</span>
+          </button>
+          <button type="button" class="bg-white hover:bg-[#FAF3E0] text-wood-dark border-2 border-wood-brown/50 shadow-[0_2px_0_#D4B89A] px-4 py-1.5 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+            <span>🍎 Lanches &amp; Guloseimas</span>
+          </button>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-1 text-xs text-wood-brown font-bold">
+          <span class="material-symbols-outlined text-base text-gold-dark">savings</span>
+          <span>Seu Saldo: <strong class="text-wood-dark font-headline text-sm">85 Talentos</strong></span>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+
+        <!-- Product 1: Bíblia Ilustrada do Explorador -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] p-4 flex flex-col justify-between hover:-translate-y-1 transition-all relative group">
+          <div>
+            <!-- Square Illustrated Icon / Photo with Stock Badge -->
+            <div class="relative bg-gradient-to-br from-amber-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl group-hover:scale-110 transition-transform select-none">📖</span>
+              <span class="absolute top-2.5 right-2.5 bg-emerald-100 text-forest-green-dark border border-forest-green/40 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Restam 5
+              </span>
+              <span class="absolute bottom-2 left-2 bg-sky-blue/20 text-sky-blue-dark text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Livros
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Bíblia Ilustrada Infantil
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              Edição capa dura com mapas de aventura e histórias ilustradas em cores.
+            </p>
+          </div>
+
+          <!-- Price & Add Button -->
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <!-- Big Gold Price Tag -->
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">15 Talentos</span>
+            </div>
+
+            <button type="button" class="bg-forest-green hover:bg-[#23857a] text-white border-2 border-forest-green-dark shadow-[0_3px_0_#1F756B] active:shadow-[0_1px_0_#1F756B] active:translate-y-[2px] transition-all px-4 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </article>
+
+        <!-- Product 2: Kit Lápis de Cor de Aventura (In Cart) -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-forest-green shadow-[0_6px_0_#1F756B] p-4 flex flex-col justify-between relative ring-2 ring-forest-green/30">
+          <div class="absolute -top-3 left-4 bg-forest-green text-white text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs">
+            ✓ 1x no Carrinho
+          </div>
+
+          <div>
+            <div class="relative bg-gradient-to-br from-emerald-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl select-none">✏️</span>
+              <span class="absolute top-2.5 right-2.5 bg-emerald-100 text-forest-green-dark border border-forest-green/40 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Restam 8
+              </span>
+              <span class="absolute bottom-2 left-2 bg-purple-100 text-purple-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Escolar
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Kit Lápis 24 Cores + Estojo
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              Lápis macios triangulares perfeitos para desenhar mapas bíblicos.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">10 Talentos</span>
+            </div>
+
+            <div class="flex items-center gap-1 bg-[#FAF3E0] p-1 rounded-full border border-wood-brown">
+              <button type="button" aria-label="Remover um" class="w-7 h-7 rounded-full bg-white border border-wood-brown text-wood-dark font-bold flex items-center justify-center shadow-xs">
+                -
+              </button>
+              <span class="font-headline font-bold text-sm px-2 text-wood-dark">1</span>
+              <button type="button" aria-label="Adicionar outro" class="w-7 h-7 rounded-full bg-forest-green text-white font-bold flex items-center justify-center shadow-xs">
+                +
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Product 3: Lanterna Explorador (In Cart) -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-forest-green shadow-[0_6px_0_#1F756B] p-4 flex flex-col justify-between relative ring-2 ring-forest-green/30">
+          <div class="absolute -top-3 left-4 bg-forest-green text-white text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs">
+            ✓ 1x no Carrinho
+          </div>
+
+          <div>
+            <div class="relative bg-gradient-to-br from-amber-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl select-none">🔦</span>
+              <span class="absolute top-2.5 right-2.5 bg-amber-100 text-amber-900 border border-gold-coin text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Últimas 2
+              </span>
+              <span class="absolute bottom-2 left-2 bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Aventura
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Lanterna Dínamo Explorer
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              Funciona à manivela sem pilha, com cordão de segurança militar.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">20 Talentos</span>
+            </div>
+
+            <div class="flex items-center gap-1 bg-[#FAF3E0] p-1 rounded-full border border-wood-brown">
+              <button type="button" aria-label="Remover um" class="w-7 h-7 rounded-full bg-white border border-wood-brown text-wood-dark font-bold flex items-center justify-center shadow-xs">
+                -
+              </button>
+              <span class="font-headline font-bold text-sm px-2 text-wood-dark">1</span>
+              <button type="button" aria-label="Adicionar outro" class="w-7 h-7 rounded-full bg-forest-green text-white font-bold flex items-center justify-center shadow-xs">
+                +
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Product 4: Cantil Termico Safari -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] p-4 flex flex-col justify-between hover:-translate-y-1 transition-all group">
+          <div>
+            <div class="relative bg-gradient-to-br from-sky-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl group-hover:scale-110 transition-transform select-none">🥤</span>
+              <span class="absolute top-2.5 right-2.5 bg-emerald-100 text-forest-green-dark border border-forest-green/40 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Restam 12
+              </span>
+              <span class="absolute bottom-2 left-2 bg-sky-100 text-sky-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Acessório
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Cantil Squeeze de Trilha
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              Garrafinha livre de BPA com mosquetão para prender na mochila.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">12 Talentos</span>
+            </div>
+
+            <button type="button" class="bg-forest-green hover:bg-[#23857a] text-white border-2 border-forest-green-dark shadow-[0_3px_0_#1F756B] active:shadow-[0_1px_0_#1F756B] active:translate-y-[2px] transition-all px-4 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </article>
+
+        <!-- Product 5: Barra de Cereal Orgânica -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] p-4 flex flex-col justify-between hover:-translate-y-1 transition-all group">
+          <div>
+            <div class="relative bg-gradient-to-br from-amber-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl group-hover:scale-110 transition-transform select-none">🍌</span>
+              <span class="absolute top-2.5 right-2.5 bg-emerald-100 text-forest-green-dark border border-forest-green/40 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Restam 25
+              </span>
+              <span class="absolute bottom-2 left-2 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Lanche
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Mix Frutas &amp; Castanhas
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              Pacotinho nutritivo para energia nas brincadeiras ao ar livre.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">5 Talentos</span>
+            </div>
+
+            <button type="button" class="bg-forest-green hover:bg-[#23857a] text-white border-2 border-forest-green-dark shadow-[0_3px_0_#1F756B] active:shadow-[0_1px_0_#1F756B] active:translate-y-[2px] transition-all px-4 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </article>
+
+        <!-- Product 6: Jogo da Memória dos Animais Bíblicos -->
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="bg-white rounded-2xl border-3 border-wood-brown shadow-[0_6px_0_#5E3B1B] p-4 flex flex-col justify-between hover:-translate-y-1 transition-all group">
+          <div>
+            <div class="relative bg-gradient-to-br from-rose-50 to-[#FAF3E0] rounded-xl p-4 flex items-center justify-center h-36 border-2 border-wood-brown/30 mb-3 overflow-hidden">
+              <span class="text-6xl group-hover:scale-110 transition-transform select-none">🧩</span>
+              <span class="absolute top-2.5 right-2.5 bg-emerald-100 text-forest-green-dark border border-forest-green/40 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                Restam 4
+              </span>
+              <span class="absolute bottom-2 left-2 bg-pink-100 text-pink-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                Brinquedo
+              </span>
+            </div>
+
+            <h3 data-design-text-token="title-md" class="font-headline text-title-md text-wood-dark mb-1 leading-snug">
+              Jogo Memória da Arca
+            </h3>
+            <p data-design-text-token="body-md" class="text-light-on-surface-variant text-body-md line-clamp-2">
+              48 cartas redondas reforçadas com animais e personagens históricos.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-3 mt-3 border-t-2 border-wood-brown/20">
+            <div class="flex items-center gap-1.5 bg-[#FFF9E6] px-3.5 py-1.5 rounded-full border-2 border-gold-coin shadow-xs">
+              <span class="material-symbols-outlined text-gold-dark text-xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg text-wood-dark font-bold">18 Talentos</span>
+            </div>
+
+            <button type="button" class="bg-forest-green hover:bg-[#23857a] text-white border-2 border-forest-green-dark shadow-[0_3px_0_#1F756B] active:shadow-[0_1px_0_#1F756B] active:translate-y-[2px] transition-all px-4 py-2 rounded-full font-label text-label-md flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- RIGHT / BOTTOM AREA: Checkout Cart (Carrinho do Explorador) -->
+    <aside class="w-full lg:w-96 bg-white rounded-3xl border-4 border-wood-brown shadow-[0_10px_0_#5E3B1B] p-5 sm:p-6 flex flex-col justify-between sticky top-24">
+
+      <div>
+        <!-- Cart Header -->
+        <div class="flex items-center justify-between pb-4 border-b-2 border-wood-brown/30 mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-xl bg-gold-coin border-2 border-gold-dark flex items-center justify-center text-wood-dark">
+              <span class="material-symbols-outlined text-2xl">shopping_cart</span>
+            </div>
+            <div>
+              <h2 data-design-text-token="title-lg" class="font-headline text-title-lg text-wood-dark leading-tight">
+                Mochila de Compras
+              </h2>
+              <span class="text-xs text-wood-brown font-bold">2 itens selecionados</span>
+            </div>
+          </div>
+
+          <button type="button" class="text-xs text-wood-brown hover:text-rose-600 font-bold underline cursor-pointer">
+            Limpar
+          </button>
+        </div>
+
+        <!-- Selected Items List -->
+        <div class="space-y-3 mb-5 max-h-60 overflow-y-auto pr-1">
+
+          <!-- Cart Item 1: Kit Lápis -->
+          <div class="bg-[#FAF3E0] rounded-xl border border-wood-brown/40 p-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">✏️</span>
+              <div>
+                <h4 class="font-headline text-xs font-bold text-wood-dark leading-snug">Kit Lápis 24 Cores</h4>
+                <span class="text-[11px] text-wood-brown">Qtd: 1 un • 10 🪙</span>
+              </div>
+            </div>
+            <span class="font-headline text-sm font-bold text-wood-dark bg-white px-2.5 py-1 rounded-full border border-gold-coin">
+              10 🪙
+            </span>
+          </div>
+
+          <!-- Cart Item 2: Lanterna Dínamo -->
+          <div class="bg-[#FAF3E0] rounded-xl border border-wood-brown/40 p-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🔦</span>
+              <div>
+                <h4 class="font-headline text-xs font-bold text-wood-dark leading-snug">Lanterna Dínamo Explorer</h4>
+                <span class="text-[11px] text-wood-brown">Qtd: 1 un • 20 🪙</span>
+              </div>
+            </div>
+            <span class="font-headline text-sm font-bold text-wood-dark bg-white px-2.5 py-1 rounded-full border border-gold-coin">
+              20 🪙
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Total Calculation Box -->
+        <div class="bg-[#FFF9E6] rounded-2xl border-2 border-gold-coin p-4 mb-4">
+          <div class="flex justify-between items-center text-xs text-wood-brown font-bold mb-1.5">
+            <span>Subtotal:</span>
+            <span>30 Talentos</span>
+          </div>
+          <div class="flex justify-between items-center text-xs text-wood-brown font-bold mb-2">
+            <span>Desconto da Turma:</span>
+            <span class="text-forest-green">0 Talentos</span>
+          </div>
+
+          <div class="border-t border-gold-coin/50 pt-2 flex justify-between items-center">
+            <div>
+              <span class="text-xs uppercase font-extrabold text-wood-brown tracking-wider block">Total do Tesouro</span>
+              <span class="text-[11px] text-wood-brown/80 font-medium">Saldo após compra: <strong>55 🪙</strong></span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="material-symbols-outlined text-gold-dark text-2xl" style="font-variation-settings: &#39;FILL&#39; 1;">monetization_on</span>
+              <span data-design-text-token="headline-lg-mobile" class="font-headline text-headline-lg-mobile text-wood-dark font-extrabold">
+                30 Talentos
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkout CTA Container: Showing both states requested by the user -->
+      <div class="space-y-3 pt-2">
+
+        <!-- STATE A: Active Green Button for Teachers / Checkout ("Pagar com Cartão Mágico NFC") -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-black uppercase tracking-wider text-forest-green-dark flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-forest-green"></span>
+            <span>Estado Ativo (Professor Desbloqueado):</span>
+          </span>
+
+          <a href="../cracha-magico-modal/CrachaMagicoModal.html" class="w-full bg-forest-green hover:bg-[#23857a] text-white border-3 border-forest-green-dark shadow-[0_5px_0_#1F756B] active:shadow-[0_2px_0_#1F756B] active:translate-y-[3px] transition-all py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 cursor-pointer group text-center">
+            <span class="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">contactless</span>
+            <div class="text-left">
+              <span class="text-[10px] uppercase font-black text-emerald-100 tracking-wider block">Confirmar Baixa</span>
+              <span data-design-text-token="label-lg" class="font-headline text-label-lg font-bold">Pagar com Cartão Mágico NFC</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- STATE B: Locked "Modo Vitrine" Badge for Kids -->
+        <div class="flex flex-col gap-1.5 pt-2 border-t border-wood-brown/20">
+          <span class="text-[11px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-gold-coin"></span>
+            <span>Estado Bloqueado (Modo Aluno / Vitrine):</span>
+          </span>
+
+          <div class="w-full bg-[#FAF3E0] text-wood-dark border-2 border-dashed border-wood-brown p-3 rounded-2xl flex items-center gap-3 shadow-inner">
+            <div class="w-9 h-9 rounded-full bg-amber-100 border border-gold-coin flex items-center justify-center text-wood-brown flex-shrink-0">
+              <span class="material-symbols-outlined text-lg">lock</span>
+            </div>
+            <div class="text-left leading-tight">
+              <span class="font-headline text-xs font-bold text-wood-dark block">
+                Modo Vitrine
+              </span>
+              <span class="text-[11px] text-wood-brown font-medium">
+                Chame o Professor para autorizar e passar o cartão NFC!
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Bottom App Status Bar -->
+  <footer class="bg-wood-brown text-[#FAF3E0] px-6 py-3 border-t-2 border-wood-dark flex flex-wrap items-center justify-between text-xs font-bold gap-3 mt-auto">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-base text-gold-coin">store</span>
+      <span>Feirinha Talento Digital • PDV Ativo</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span>Estoque Total: <strong>72 itens</strong></span>
+      <span>Modo Autônomo Seguro</span>
+    </div>
+  </footer>
+
+
+
+</body></html>

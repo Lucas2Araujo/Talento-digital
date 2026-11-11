@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:talento_digital/database/models.dart';
 import 'package:talento_digital/database/talentos_repository.dart';
+import 'package:talento_digital/services/pin_security_service.dart';
 import 'package:talento_digital/widgets/aluno_detalhes_modal.dart';
 
 class FakeTalentosRepository extends TalentosRepository {
@@ -35,7 +36,7 @@ class FakeTalentosRepository extends TalentosRepository {
 }
 
 void main() {
-  testWidgets('AlunoDetalhesModal exibe dados e botões de lançamento', (tester) async {
+  testWidgets('AlunoDetalhesModal oculta ações no Modo Consulta e exibe no Modo Professor', (tester) async {
     final aluno = AlunoModel(
       uid: '041693AB8A2681',
       nome: 'Lucas Gabriel',
@@ -44,6 +45,9 @@ void main() {
       updatedAt: '2026-11-06T10:00:00',
     );
     final repo = FakeTalentosRepository([aluno]);
+
+    // 1. Modo Consulta (padrão = false)
+    PinSecurityService.isModoProfessorAtivo.value = false;
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -56,10 +60,27 @@ void main() {
     ));
 
     expect(find.text('Lucas Gabriel'), findsOneWidget);
-    expect(find.text('12'), findsOneWidget);
-    expect(find.text('+1 Presença'), findsOneWidget);
-    expect(find.text('+2 Lição Feita'), findsOneWidget);
-    expect(find.text('+5 Verso Bíblico'), findsOneWidget);
-    expect(find.text('+3 Ação Especial'), findsOneWidget);
+    expect(find.textContaining('12 Talentos'), findsOneWidget);
+    // No modo consulta, os botões rápidos ficam ocultos
+    expect(find.text('+1 Presença'), findsNothing);
+
+    // 2. Modo Professor (desbloqueado = true)
+    PinSecurityService.isModoProfessorAtivo.value = true;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: AlunoDetalhesModal(
+          alunoInicial: aluno,
+          repository: repo,
+          onDataChanged: () {},
+        ),
+      ),
+    ));
+
+    expect(find.text('+1 🪙'), findsOneWidget);
+    expect(find.text('+2 🪙'), findsOneWidget);
+    expect(find.text('+5 🪙'), findsOneWidget);
+    expect(find.text('+10 🪙'), findsOneWidget);
+
+    PinSecurityService.isModoProfessorAtivo.value = false;
   });
 }

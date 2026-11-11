@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:talento_digital/database/models.dart';
 import 'package:talento_digital/database/talentos_repository.dart';
 import 'package:talento_digital/screens/feirinha_pdv_screen.dart';
+import 'package:talento_digital/services/pin_security_service.dart';
 
 class FakePdvRepository extends TalentosRepository {
   final List<ProdutoModel> produtos;
@@ -60,6 +61,9 @@ void main() {
 
     final repo = FakePdvRepository(produtos: produtos, alunos: []);
 
+    // Modo Consulta por padrão: exibe banner de vitrine
+    PinSecurityService.isModoProfessorAtivo.value = false;
+
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData.dark(),
       home: FeirinhaPdvScreen(repository: repo),
@@ -73,12 +77,19 @@ void main() {
     expect(find.text('Adesivos Divertidos'), findsOneWidget);
     expect(find.text('ESGOTADO'), findsOneWidget);
 
-    // Clica no item disponível para adicionar ao carrinho
-    await tester.tap(find.text('Mini Bíblia Ilustrada'));
+    // Clica no botão '+' do primeiro item disponível para adicionar ao carrinho
+    await tester.tap(find.text('+').first);
     await tester.pumpAndSettle();
 
-    // Carrinho deve atualizar com 15 Talentos
+    // Carrinho deve atualizar com 15 Talentos e mensagem de Modo Vitrine
     expect(find.text('15 Talentos'), findsOneWidget);
+    expect(find.textContaining('Modo Vitrine'), findsOneWidget);
+
+    // Ativa Modo Professor: botão de finalizar compra é liberado
+    PinSecurityService.isModoProfessorAtivo.value = true;
+    await tester.pumpAndSettle();
+
     expect(find.text('FINALIZAR COMPRA'), findsOneWidget);
+    PinSecurityService.isModoProfessorAtivo.value = false;
   });
 }

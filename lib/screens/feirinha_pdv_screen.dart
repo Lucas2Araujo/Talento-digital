@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../database/models.dart';
 import '../database/talentos_repository.dart';
+import '../services/image_helper_service.dart';
 import '../services/nfc_usb_listener.dart';
+import '../services/pin_security_service.dart';
+import '../theme/adventure_theme.dart';
 import '../widgets/gestao_produtos_dialog.dart';
 import '../widgets/pdv_checkout_dialog.dart';
 import 'admin_painel_dialog.dart';
@@ -473,116 +476,149 @@ class _FeirinhaPdvScreenState extends State<FeirinhaPdvScreen> {
             final qtdNoCarrinho = cartItem.quantidade;
             final estaEsgotado = produto.esgotado || produto.estoque <= 0;
 
-            return Card(
-              elevation: 2,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: qtdNoCarrinho > 0
-                      ? Colors.amber
-                      : estaEsgotado
-                          ? Colors.red.withValues(alpha: 0.3)
-                          : Colors.white12,
-                  width: qtdNoCarrinho > 0 ? 2 : 1,
-                ),
-              ),
-              color: estaEsgotado
-                  ? const Color(0xFF181818)
-                  : qtdNoCarrinho > 0
-                      ? const Color(0xFF26231C)
-                      : const Color(0xFF1E1E1E),
-              child: InkWell(
-                onTap: () => _adicionarAoCarrinho(produto),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            return AdventureCard(
+              backgroundColor: Colors.white,
+              borderColor: qtdNoCarrinho > 0 ? AdventureTheme.forestGreen : AdventureTheme.woodBrown,
+              shadowColor: qtdNoCarrinho > 0 ? AdventureTheme.forestGreenDark : AdventureTheme.woodDark,
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Caixa Superior Quadrada com Gradiente e Foto/Emoji
+                  Stack(
                     children: [
-                      // Badge superior de status ou quantidade
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (estaEsgotado)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.redAccent, width: 0.8),
-                              ),
-                              child: const Text(
-                                'ESGOTADO',
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
-                          else
-                            Text(
-                              'Estoque: ${produto.estoque}',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          if (qtdNoCarrinho > 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'x$qtdNoCarrinho',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const Spacer(),
-                      // Nome do Produto
-                      Text(
-                        produto.nome,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: estaEsgotado ? Colors.grey : Colors.white,
-                          decoration: estaEsgotado ? TextDecoration.lineThrough : null,
+                      Container(
+                        height: 90,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFF9E6), Color(0xFFF3EAD3)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AdventureTheme.woodBrown.withValues(alpha: 0.3)),
+                        ),
+                        alignment: Alignment.center,
+                        child: ImageHelperService.buildProdutoIconWidget(
+                          fotoBase64: produto.fotoBase64,
+                          iconeId: produto.iconeId,
+                          nome: produto.nome,
+                          size: 52,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      // Preço em Talentos
+                      // Badge Restam X ou Esgotado
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: estaEsgotado ? AdventureTheme.errorCoral : const Color(0xFFD8F3DC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: estaEsgotado ? const Color(0xFFB24B32) : AdventureTheme.forestGreenDark,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            estaEsgotado ? 'ESGOTADO' : 'Restam ${produto.estoque}',
+                            style: TextStyle(
+                              color: estaEsgotado ? Colors.white : AdventureTheme.forestGreenDark,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Título do Produto
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      produto.nome,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AdventureTheme.titleFredoka.copyWith(
+                        fontSize: 14,
+                        decoration: estaEsgotado ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ),
+
+                  // Pílula de Preço + Botão Adicionar ou Seletor - 1 +
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Preço Dourado
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFFFFF9E6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AdventureTheme.goldCoin, width: 1.5),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                            const SizedBox(width: 4),
+                            const Icon(Icons.monetization_on, color: AdventureTheme.goldDark, size: 14),
+                            const SizedBox(width: 3),
                             Text(
                               '${produto.valorTalentos} T',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                color: estaEsgotado ? Colors.grey : Colors.amber,
+                                fontSize: 12,
+                                color: AdventureTheme.woodDark,
                               ),
                             ),
                           ],
                         ),
                       ),
+
+                      // Botão de Adição ou Seletor
+                      if (qtdNoCarrinho == 0)
+                        AdventureButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          borderRadius: 12,
+                          backgroundColor: estaEsgotado ? Colors.grey : AdventureTheme.forestGreen,
+                          borderColor: estaEsgotado ? Colors.grey.shade700 : AdventureTheme.forestGreenDark,
+                          onPressed: estaEsgotado ? null : () => _adicionarAoCarrinho(produto),
+                          child: const Text('+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AdventureTheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AdventureTheme.forestGreen, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              InkWell(
+                                onTap: () => _decrementarItem(cartItem),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  child: Text('-', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdventureTheme.woodDark)),
+                                ),
+                              ),
+                              Text('$qtdNoCarrinho', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AdventureTheme.forestGreenDark)),
+                              InkWell(
+                                onTap: () => _adicionarAoCarrinho(produto),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  child: Text('+', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AdventureTheme.woodDark)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
-                ),
+                ],
               ),
             );
           },
@@ -974,19 +1010,53 @@ class _FeirinhaPdvScreenState extends State<FeirinhaPdvScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: _totalTalentos > 0 ? () => _abrirCheckout() : null,
-                  icon: const Icon(Icons.check_circle_outline, size: 22),
-                  label: const Text(
-                    'FINALIZAR COMPRA',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
-                  ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: PinSecurityService.isModoProfessorAtivo,
+                  builder: (context, isProfessor, _) {
+                    if (!isProfessor) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade700, style: BorderStyle.solid),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.lock_outline, color: Colors.amber, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Modo Vitrine — Chame o Professor para autorizar e passar o cartão NFC!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: _totalTalentos > 0 ? () => _abrirCheckout() : null,
+                      icon: const Icon(Icons.check_circle_outline, size: 22),
+                      label: const Text(
+                        'FINALIZAR COMPRA',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

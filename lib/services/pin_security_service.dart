@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PinSecurityService {
@@ -5,6 +6,9 @@ class PinSecurityService {
   static const String pinPadrao = '1234';
 
   final SharedPreferences _prefs;
+
+  /// Estado global reativo de sessão (Modo Consulta vs Modo Professor/Admin)
+  static final ValueNotifier<bool> isModoProfessorAtivo = ValueNotifier<bool>(false);
 
   PinSecurityService(this._prefs);
 
